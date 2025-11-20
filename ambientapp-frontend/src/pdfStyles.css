@@ -1,0 +1,55 @@
+#pdf-informe {
+  width: 794px; /* A4 width */
+  padding: 32px;
+  background: white;
+  font-family: sans-serif;
+}
+
+.pdf-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.pdf-subtitle {
+  font-size: 14px;
+  color: #4b5563;
+  margin-bottom: 24px;
+}
+
+.pdf-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.pdf-box {
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.pdf-grid {
+  display: flex;
+  gap: 16px;
+}
+
+.pdf-col {
+  flex: 1;
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.pdf-box-ambiental {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 240px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  font-size: 14px;
+}
