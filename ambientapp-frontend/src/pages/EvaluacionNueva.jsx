@@ -393,18 +393,16 @@ export default function EvaluacionNueva() {
       await saveEvaluacion(evaluacionCompleta);
 
       // GUARDAR REP MULTILISTA
-      // GUARDAR REP MULTILISTA
       const repList = formData.wasteData.rep;
 
       for (const rep of repList) {
         await saveResiduosRep({
-          empresaId: user?.empresaId,
+          // empresaId lo toma el backend desde el token (req.user.empresaId)
           producto: rep.producto,
           subcategoria: rep.subcategoria,
           anio: rep.anio,
           cantidadGenerada: rep.cantidadGenerada,
           cantidadValorizada: rep.cantidadValorizada,
-          porcentajeValorizacion: rep.porcentajeValorizacion, // ← FALTABA ESTO
         });
       }
 

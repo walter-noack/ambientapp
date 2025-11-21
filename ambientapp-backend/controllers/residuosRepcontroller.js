@@ -1,46 +1,41 @@
-// controllers/residuosRepcontroller.js
 const ResiduosRep = require("../models/residuosRep.model");
 
 exports.crearResiduoRep = async (req, res) => {
   try {
-    console.log("🟦 RECIBIDO POR BACKEND REP:", req.body);
-    console.log("🟩 USER DESDE TOKEN:", req.user);
-
     const {
+      producto,
+      subcategoria,
+      anio,
+      cantidadGenerada,
+      cantidadValorizada,
+    } = req.body;
+
+    // 🟢 empresaId SIEMPRE desde el token normalizado
+    const empresaId = req.user?.empresaId;
+
+    console.log("🟦 RECIBIDO POR BACKEND REP:", {
       empresaId,
       producto,
       subcategoria,
       anio,
       cantidadGenerada,
       cantidadValorizada,
-      porcentajeValorizacion,
-    } = req.body;
+    });
 
-    // --- Determinar si el usuario es AdminSupremo ---
-    const esAdmin = req.user?.role === "AdminSupremo";
-
-    // --- Validación de empresaId ---
-    // Si NO es admin → empresaId es obligatorio
-    if (!esAdmin && !empresaId) {
-      return res.status(400).json({
-        message: "empresaId es obligatorio para usuarios no administradores",
-      });
+    if (!empresaId || !producto || !subcategoria || !anio) {
+      return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
 
-    // AdminSupremo puede guardar registros sin empresaId
-    const empresaFinal = esAdmin ? "ADMIN_GLOBAL" : empresaId;
-
-    // --- Validación de campos comunes ---
-    if (!producto || !anio) {
+    if (cantidadGenerada == null || cantidadGenerada <= 0) {
       return res
         .status(400)
-        .json({ message: "Faltan campos obligatorios (producto o año)" });
+        .json({ message: "La cantidad generada debe ser mayor a 0" });
     }
 
-    if (cantidadGenerada <= 0) {
-      return res.status(400).json({
-        message: "La cantidad generada debe ser mayor a 0",
-      });
+    if (cantidadValorizada == null || cantidadValorizada < 0) {
+      return res
+        .status(400)
+        .json({ message: "La cantidad valorizada no puede ser negativa" });
     }
 
     if (cantidadValorizada > cantidadGenerada) {
@@ -49,23 +44,17 @@ exports.crearResiduoRep = async (req, res) => {
       });
     }
 
-    // --- Subcategoría opcional ---
-    const subcategoriaFinal = subcategoria?.trim() || "No especificada";
-
-    // --- % valorización si no se envió ---
-    const porcentajeCalc =
-      porcentajeValorizacion ??
+    const porcentajeValorizacion =
       (cantidadValorizada / cantidadGenerada) * 100;
 
-    // 🟢 Crear registro final
     const nuevoRegistro = await ResiduosRep.create({
-      empresaId: empresaFinal,
+      empresaId,
       producto,
-      subcategoria: subcategoriaFinal,
+      subcategoria,
       anio,
       cantidadGenerada,
       cantidadValorizada,
-      porcentajeValorizacion: porcentajeCalc,
+      porcentajeValorizacion,
     });
 
     return res.status(201).json({
@@ -73,16 +62,13 @@ exports.crearResiduoRep = async (req, res) => {
       data: nuevoRegistro,
     });
   } catch (error) {
-    console.error("❌ Error al crear RESIDUO REP:", error);
+    console.error("Error al crear RESIDUO REP:", error);
     return res.status(500).json({
       message: "Error interno del servidor",
     });
   }
 };
 
-// ------------------------------------------------------------
-// GET /rep/empresa/:empresaId
-// ------------------------------------------------------------
 exports.getResiduosRepByEmpresa = async (req, res) => {
   try {
     const { empresaId } = req.params;
@@ -102,7 +88,7 @@ exports.getResiduosRepByEmpresa = async (req, res) => {
       data: registros,
     });
   } catch (error) {
-    console.error("❌ Error obteniendo residuos REP:", error);
+    console.error("Error obteniendo residuos REP:", error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };

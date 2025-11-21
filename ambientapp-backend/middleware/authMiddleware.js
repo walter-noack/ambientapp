@@ -1,7 +1,11 @@
 // middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "cambia-esto-por-un-secreto-fuerte";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "cambia-esto-por-un-secreto-fuerte";
+
+// ID fijo para el superusuario
+const EMPRESA_ADMIN_ID = "EMPRESA_ADMIN";
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -15,13 +19,21 @@ function authMiddleware(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    // payload tendrá: userId, role, empresaId
-    req.user = payload;
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 🌟 Normalizamos empresaId para AdminSupremo
+    if (decoded.role === "AdminSupremo" && !decoded.empresaId) {
+      decoded.empresaId = EMPRESA_ADMIN_ID;
+    }
+
+    req.user = decoded;
+
+    console.log("🟩 USER DESDE TOKEN NORMALIZADO:", req.user);
+
     next();
-  } catch (error) {
-    console.error("Error verificando token:", error);
-    return res.status(401).json({ message: "Token inválido o expirado" });
+  } catch (err) {
+    console.error("Error en authMiddleware:", err);
+    return res.status(401).json({ message: "Token inválido" });
   }
 }
 
@@ -29,7 +41,9 @@ function authMiddleware(req, res, next) {
 function requireRole(...rolesPermitidos) {
   return (req, res, next) => {
     if (!req.user || !rolesPermitidos.includes(req.user.role)) {
-      return res.status(403).json({ message: "No tienes permisos suficientes" });
+      return res
+        .status(403)
+        .json({ message: "No tienes permisos suficientes" });
     }
     next();
   };

@@ -89,16 +89,16 @@ export default function EditarEvaluacion() {
     setFormData((prev) =>
       categoria
         ? {
-            ...prev,
-            [categoria]: {
-              ...prev[categoria],
-              [name]: value,
-            },
-          }
-        : {
-            ...prev,
+          ...prev,
+          [categoria]: {
+            ...prev[categoria],
             [name]: value,
-          }
+          },
+        }
+        : {
+          ...prev,
+          [name]: value,
+        }
     );
   };
 
@@ -173,7 +173,10 @@ export default function EditarEvaluacion() {
         scores: calculos.scores,
         finalScore: calculos.finalScore,
         nivel: calculos.nivel,
-        recommendations,
+        recommendations: generarRecomendaciones(
+          calculos.scores,
+          calculos.finalScore
+        ),
       };
 
       // 🔵 guardar evaluación
@@ -234,20 +237,18 @@ export default function EditarEvaluacion() {
                 <div
                   onClick={() => setPaso(num)}
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold cursor-pointer transition
-                  ${
-                    paso === num
+                  ${paso === num
                       ? "bg-green-600 text-white"
                       : "bg-gray-200 text-gray-500 hover:bg-gray-300"
-                  }`}
+                    }`}
                 >
                   {num}
                 </div>
 
                 {num < 4 && (
                   <div
-                    className={`flex-1 h-1 mx-2 ${
-                      paso > num ? "bg-green-500" : "bg-gray-200"
-                    }`}
+                    className={`flex-1 h-1 mx-2 ${paso > num ? "bg-green-500" : "bg-gray-200"
+                      }`}
                   />
                 )}
               </div>
@@ -443,8 +444,8 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadValorizada && valor
                         ? (Number(nuevoRep.cantidadValorizada) /
-                            Number(valor)) *
-                          100
+                          Number(valor)) *
+                        100
                         : 0;
 
                     setNuevoRep({
@@ -465,8 +466,8 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadGenerada && valor
                         ? (Number(valor) /
-                            Number(nuevoRep.cantidadGenerada)) *
-                          100
+                          Number(nuevoRep.cantidadGenerada)) *
+                        100
                         : 0;
 
                     setNuevoRep({
