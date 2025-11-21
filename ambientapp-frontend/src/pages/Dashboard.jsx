@@ -1,217 +1,326 @@
-// Dashboard.jsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getEvaluaciones } from "../services/api";
+import { Link } from "react-router-dom";
+import { getEvaluaciones, getResiduosRep } from "../services/api";
+import { Chart } from "chart.js/auto";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+Chart.register(ChartDataLabels);
+import NivelBadge from "../components/nivelBadge";
 
-import CardIndicador from "../components/CardIndicador";
-import MedioDonutScore from "../components/MedioDonutScore";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
+  const [evaluaciones, setEvaluaciones] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+
+  const [kpis, setKpis] = useState({
     total: 0,
-    promedios: {
-      carbonScore: 0,
-      waterScore: 0,
-      wasteScore: 0,
-    },
-    finalScorePromedio: 0,
-    distribucionNiveles: {
-      Avanzado: 0,
-      Intermedio: 0,
-      Básico: 0,
-      Bajo: 0,
-    },
+    nivelPromedio: 0,
+    empresasConRep: 0,
+    ultimaFecha: null,
+    promCarbono: 0,
+    promAgua: 0,
+    promResiduos: 0,
   });
 
+  // =========================================================
+  //   CARGA DE LOS DATOS
+  // =========================================================
   useEffect(() => {
-    cargarEstadisticas();
+    async function load() {
+      try {
+        const data = await getEvaluaciones();
+        setEvaluaciones(data);
+
+        const total = data.length;
+
+        const nivelPromedio =
+          total > 0
+            ? data.reduce((acc, e) => acc + (e.finalScore || 0), 0) / total
+            : 0;
+
+        // Empresas con REP
+        let repCount = 0;
+        for (const ev of data) {
+          const repData = await getResiduosRep(ev.empresaId);
+          if (repData.data && repData.data.length > 0) repCount++;
+        }
+        const empresasConRep = total > 0 ? Math.round((repCount / total) * 100) : 0;
+
+        // Última fecha
+        const fechas = data
+          .map((ev) => new Date(ev.createdAt))
+          .sort((a, b) => b - a);
+        const ultimaFecha = fechas[0]?.toLocaleDateString("es-CL") || "-";
+
+        // Promedios por dimensión
+        const promCarbono =
+          total > 0
+            ? data.reduce((acc, e) => acc + (e.scores?.carbonScore || 0), 0) / total
+            : 0;
+
+        const promAgua =
+          total > 0
+            ? data.reduce((acc, e) => acc + (e.scores?.waterScore || 0), 0) / total
+            : 0;
+
+        const promResiduos =
+          total > 0
+            ? data.reduce((acc, e) => acc + (e.scores?.wasteScore || 0), 0) / total
+            : 0;
+
+        setKpis({
+          total,
+          nivelPromedio,
+          empresasConRep,
+          ultimaFecha,
+          promCarbono,
+          promAgua,
+          promResiduos,
+        });
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
   }, []);
 
-  const cargarEstadisticas = async () => {
-    try {
-      const evaluaciones = await getEvaluaciones();
+  // =========================================================
+  //   GRAFICO RADAR (Estabilizado)
+  // =========================================================
+  useEffect(() => {
+    if (loading) return;
 
-      if (evaluaciones.length === 0) {
-        setLoading(false);
-        return;
+    // Espera DOM completamente listo
+    setTimeout(() => {
+      const canvasRadar = document.getElementById("radarDashboard");
+      if (!canvasRadar) return;
+
+      // Evita múltiples instancias si React re-renderiza
+      if (canvasRadar._chartInstance) {
+        canvasRadar._chartInstance.destroy();
       }
 
-      const total = evaluaciones.length;
-
-      const sumaCarbono = evaluaciones.reduce(
-        (acc, ev) => acc + ev.scores.carbonScore,
-        0
-      );
-      const sumaAgua = evaluaciones.reduce(
-        (acc, ev) => acc + ev.scores.waterScore,
-        0
-      );
-      const sumaResiduos = evaluaciones.reduce(
-        (acc, ev) => acc + ev.scores.wasteScore,
-        0
-      );
-      const sumaFinal = evaluaciones.reduce(
-        (acc, ev) => acc + ev.finalScore,
-        0
-      );
-
-      const niveles = { Avanzado: 0, Intermedio: 0, Básico: 0, Bajo: 0 };
-      evaluaciones.forEach((ev) => {
-        if (niveles[ev.nivel] !== undefined) {
-          niveles[ev.nivel]++;
-        }
-      });
-
-      setStats({
-        total,
-        promedios: {
-          carbonScore: (sumaCarbono / total).toFixed(1),
-          waterScore: (sumaAgua / total).toFixed(1),
-          wasteScore: (sumaResiduos / total).toFixed(1),
+      const chart = new Chart(canvasRadar, {
+        type: "radar",
+        data: {
+          labels: ["Carbono", "Agua", "Residuos"],
+          datasets: [
+            {
+              label: "Promedio global",
+              data: [
+                kpis.promCarbono,
+                kpis.promAgua,
+                kpis.promResiduos,
+              ],
+              backgroundColor: "rgba(34,197,94,0.25)",
+              borderColor: "#16a34a",
+              borderWidth: 2,
+              pointBackgroundColor: "#16a34a",
+            },
+          ],
         },
-        finalScorePromedio: (sumaFinal / total).toFixed(1),
-        distribucionNiveles: niveles,
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            datalabels: {
+              color: "#000000",
+              font: {
+                size: 13,
+                weight: "bold",
+              },
+              formatter: (val) => val.toFixed(1),
+            },
+            legend: { display: false },
+          },
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              ticks: { stepSize: 20 },
+            },
+          },
+        },
       });
 
-      setLoading(false);
-    } catch (error) {
-      console.error("Error al cargar estadísticas:", error);
-      setLoading(false);
-    }
-  };
+      canvasRadar._chartInstance = chart;
+    }, 120); // 120ms → más estable
 
+  }, [loading, kpis]);
+
+  // =========================================================
+  //   ESTADO DE CARGA
+  // =========================================================
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando dashboard...</p>
-        </div>
+      <div className="flex justify-center mt-20 text-gray-600">
+        Cargando dashboard...
       </div>
     );
   }
 
-  const scorePromedio = Number(stats.finalScorePromedio || 0);
-
+  // =========================================================
+  //   RENDER PRINCIPAL
+  // =========================================================
   return (
-    <div className="space-y-10">
-      {/* TITULO */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-slate-800 mb-1">
-          Dashboard Ambiental
-        </h1>
-        <p className="text-slate-600">Resumen general de las evaluaciones</p>
+    <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800">Dashboard Ambiental</h1>
+        <p className="text-slate-600 text-sm mt-1">
+          Resumen general de diagnósticos ambientales registrados en la plataforma.
+        </p>
       </div>
 
-      {/* BOTONES ARRIBA */}
-      <div className="flex justify-center gap-4">
-        <button
-          onClick={() => navigate("/nueva")}
-          className="btn-primary flex items-center gap-2"
-        >
-          ➕ Nueva Evaluación
-        </button>
+      {/* KPIs PRINCIPALES */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-        <button
-          onClick={() => navigate("/evaluaciones")}
-          className="btn-secondary flex items-center gap-2"
-        >
-          📋 Ver Evaluaciones
-        </button>
+        <div className="p-4 bg-white border rounded-xl shadow-sm">
+          <p className="text-xs text-slate-500">Evaluaciones realizadas</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{kpis.total}</p>
+        </div>
+
+        <div className="p-4 bg-white border rounded-xl shadow-sm">
+          <p className="text-xs text-slate-500">Nivel promedio</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">
+            {kpis.nivelPromedio.toFixed(1)} / 100
+          </p>
+        </div>
+
+        <div className="p-4 bg-white border rounded-xl shadow-sm">
+          <p className="text-xs text-slate-500">% Empresas con REP</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">
+            {kpis.empresasConRep}%
+          </p>
+        </div>
+
+        <div className="p-4 bg-white border rounded-xl shadow-sm">
+          <p className="text-xs text-slate-500">Última evaluación</p>
+          <p className="text-lg font-semibold text-slate-900 mt-1">
+            {kpis.ultimaFecha}
+          </p>
+        </div>
+
       </div>
 
-      {/* TARJETAS PRINCIPALES */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <CardIndicador
-          titulo="Total Evaluaciones"
-          valor={stats.total}
-          icono="📊"
-          color="blue"
-        />
-        <CardIndicador
-          titulo="Score Promedio"
-          valor={stats.finalScorePromedio}
-          unidad="/100"
-          icono="⭐"
-          color="green"
-        />
-        <CardIndicador
-          titulo="Nivel Avanzado"
-          valor={stats.distribucionNiveles.Avanzado}
-          icono="🔵"
-          color="sky"
-        />
-        <CardIndicador
-          titulo="Nivel Bajo"
-          valor={stats.distribucionNiveles.Bajo}
-          icono="🔴"
-          color="red"
-        />
+      {/* MINI-REPORTES + RADAR */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+
+        {/* TARJETAS DE REPORTES */}
+        <div className="space-y-4">
+
+          <Link
+            to="/evaluaciones?filtro=carbono"
+            className="block p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
+          >
+            <h3 className="text-sm font-semibold text-slate-900">Desempeño en Carbono</h3>
+            <p className="text-3xl font-bold mt-1 text-green-600">
+              {kpis.promCarbono.toFixed(1)} / 100
+            </p>
+            <p className="text-xs text-slate-600 mt-2">
+              {kpis.promCarbono >= 60
+                ? "Buen control de emisiones."
+                : "Hay oportunidades de reducción de emisiones."}
+            </p>
+          </Link>
+
+          <Link
+            to="/evaluaciones?filtro=agua"
+            className="block p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
+          >
+            <h3 className="text-sm font-semibold text-slate-900">Desempeño en Agua</h3>
+            <p className="text-3xl font-bold mt-1 text-blue-600">
+              {kpis.promAgua.toFixed(1)} / 100
+            </p>
+            <p className="text-xs text-slate-600 mt-2">
+              {kpis.promAgua >= 60
+                ? "Consumo hídrico adecuado."
+                : "Consumo alto: revisar eficiencia hídrica."}
+            </p>
+          </Link>
+
+          <Link
+            to="/evaluaciones?filtro=residuos"
+            className="block p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
+          >
+            <h3 className="text-sm font-semibold text-slate-900">Desempeño en Residuos</h3>
+            <p className="text-3xl font-bold mt-1 text-purple-600">
+              {kpis.promResiduos.toFixed(1)} / 100
+            </p>
+            <p className="text-xs text-slate-600 mt-2">
+              {kpis.promResiduos >= 60
+                ? "Buena valorización."
+                : "Baja valorización: revisar gestión."}
+            </p>
+          </Link>
+
+        </div>
+
+        {/* RADAR FINAL */}
+        <div className="bg-white border rounded-xl shadow-sm p-4">
+          <h3 className="text-sm font-semibold text-slate-900 mb-2">
+            Promedio general del perfil ambiental
+          </h3>
+
+          <div className="w-full flex justify-center">
+            <div className="max-w-[350px] w-full h-[350px]">
+              <canvas id="radarDashboard"></canvas>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* MEDIO DONUT + SEMÁFORO LADO A LADO */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-
-  {/* MEDIO DONUT SCORE */}
-  <div className="bg-white rounded-xl shadow p-6">
-    <h2 className="text-xl font-semibold text-slate-800 mb-4 text-center">
-      Puntaje Ambiental Global
-    </h2>
-
-    <MedioDonutScore score={scorePromedio} />
-
-    <p className="text-center mt-4 text-slate-600 text-sm">
-      Este indicador resume el desempeño ambiental promedio considerando
-      emisiones, agua y residuos.
-    </p>
-  </div>
-
-  {/* SEMÁFORO DE NIVELES */}
-  <div className="bg-white rounded-xl shadow p-6">
-    <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-      Distribución por Nivel (Escala 4 niveles)
-    </h2>
-
-    <div className="space-y-3">
-      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-        <span className="font-medium text-blue-700">🔵 Avanzado</span>
-        <span className="text-2xl font-bold text-blue-700">
-          {stats.distribucionNiveles.Avanzado}
-        </span>
+      {/* BOTÓN NUEVA EVALUACIÓN */}
+      <div className="flex justify-end mt-4">
+        <Link to="/evaluaciones/nueva" className="btn-primary px-4 py-2 rounded-lg">
+          + Nueva Evaluación
+        </Link>
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-        <span className="font-medium text-yellow-700">🟡 Intermedio</span>
-        <span className="text-2xl font-bold text-yellow-600">
-          {stats.distribucionNiveles.Intermedio}
-        </span>
+      {/* TABLA EVALUACIONES */}
+      <div className="bg-white rounded-xl border shadow-sm p-4">
+        <h2 className="text-lg font-semibold mb-3 text-slate-800">
+          Evaluaciones registradas
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-slate-500 border-b">
+                <th className="py-2">Empresa</th>
+                <th>Período</th>
+                <th>Puntaje</th>
+                <th>Nivel</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {evaluaciones.map((ev) => (
+                <tr key={ev._id} className="border-b hover:bg-slate-50 transition">
+                  <td className="py-2 font-medium text-slate-700">{ev.companyName}</td>
+                  <td>{ev.period}</td>
+                  <td>{ev.finalScore}</td>
+                  <td><NivelBadge nivel={ev.nivel} /></td>
+                  <td>
+                    <Link
+                      to={`/detalle/${ev._id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Ver detalle
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-        <span className="font-medium text-orange-600">🟠 Básico</span>
-        <span className="text-2xl font-bold text-orange-600">
-          {stats.distribucionNiveles.Básico}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-        <span className="font-medium text-red-700">🔴 Bajo</span>
-        <span className="text-2xl font-bold text-red-700">
-          {stats.distribucionNiveles.Bajo}
-        </span>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-      {/* FOOTER */}
-      <p className="text-center text-xs text-slate-400 pt-6">
-        Elaborado por @mellamowalter.cl — 2025
-      </p>
     </div>
   );
 }
