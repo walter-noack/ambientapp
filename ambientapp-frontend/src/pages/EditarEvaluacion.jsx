@@ -34,6 +34,7 @@ export default function EditarEvaluacion() {
     carbonData: { electricidad: 0, gas: 0, diesel: 0, bencina: 0 },
     waterData: { consumoMensual: 0, fuentePrincipal: "" },
     wasteData: { residuosTotales: 0, residuosReciclados: 0 },
+    empresaId: null,
   });
 
   // ----------------------------
@@ -55,26 +56,33 @@ export default function EditarEvaluacion() {
   // ======================================================
   useEffect(() => {
     async function load() {
-      const data = await getEvaluacionById(id);
-      if (!data) return;
+      try {
+        const data = await getEvaluacionById(id);
+        if (!data) {
+          setCargandoDatos(false);
+          return;
+        }
 
-      setFormData({
-        companyName: data.companyName,
-        sector: data.sector,
-        period: data.period,
-        carbonData: data.carbonData,
-        waterData: data.waterData,
-        wasteData: data.wasteData,
-        empresaId: data.empresaId,
-      });
+        setFormData({
+          companyName: data.companyName,
+          sector: data.sector,
+          period: data.period,
+          carbonData: data.carbonData,
+          waterData: data.waterData,
+          wasteData: data.wasteData,
+          empresaId: data.empresaId,
+        });
 
-      // 🟢 cargar registros REP
-      if (data.empresaId) {
-        const repResp = await getResiduosRep(data.empresaId);
-        setRepList(repResp.data); // backend responde { success, data }
+        // Cargar registros REP desde backend
+        if (data.empresaId) {
+          const repResp = await getResiduosRep(data.empresaId);
+          setRepList(repResp.data || []); // backend responde { success, data }
+        }
+      } catch (error) {
+        console.error("Error cargando evaluación:", error);
+      } finally {
+        setCargandoDatos(false);
       }
-
-      setCargandoDatos(false);
     }
 
     load();
@@ -89,16 +97,16 @@ export default function EditarEvaluacion() {
     setFormData((prev) =>
       categoria
         ? {
-          ...prev,
-          [categoria]: {
-            ...prev[categoria],
-            [name]: value,
-          },
-        }
+            ...prev,
+            [categoria]: {
+              ...prev[categoria],
+              [name]: value,
+            },
+          }
         : {
-          ...prev,
-          [name]: value,
-        }
+            ...prev,
+            [name]: value,
+          }
     );
   };
 
@@ -150,7 +158,7 @@ export default function EditarEvaluacion() {
   // ❌ ELIMINAR REP
   // ======================================================
   const eliminarProductoRep = (index) => {
-    setRepList(repList.filter((_, i) => i !== index));
+    setRepList((prev) => prev.filter((_, i) => i !== index));
   };
 
   // ======================================================
@@ -161,7 +169,7 @@ export default function EditarEvaluacion() {
     setLoading(true);
 
     try {
-      // recalcular score
+      // Recalcular score a partir del formData editado
       const calculos = calcularEvaluacionReal(formData);
       const recomendaciones = generarRecomendaciones(
         calculos.scores,
@@ -173,16 +181,13 @@ export default function EditarEvaluacion() {
         scores: calculos.scores,
         finalScore: calculos.finalScore,
         nivel: calculos.nivel,
-        recommendations: generarRecomendaciones(
-          calculos.scores,
-          calculos.finalScore
-        ),
+        recomendaciones,
       };
 
-      // 🔵 guardar evaluación
+      // Guardar evaluación
       await updateEvaluacion(id, evaluacionActualizada);
 
-      // 🔵 guardar REP actualizado (elimina/añade todos)
+      // Guardar REP actualizado (agrega registros nuevos/actuales)
       for (const rep of repList) {
         await saveResiduosRep({
           empresaId: formData.empresaId,
@@ -196,7 +201,7 @@ export default function EditarEvaluacion() {
       }
 
       alert("Cambios guardados correctamente ✔️");
-      navigate(`/evaluaciones/${id}`);
+      navigate(`/detalle/${id}`);
     } catch (error) {
       console.error(error);
       alert("❌ Error al guardar cambios");
@@ -220,57 +225,53 @@ export default function EditarEvaluacion() {
   }
 
   // ======================================================
-  // UI PRINCIPAL
+  // UI PRINCIPAL (MISMO LOOK QUE EvaluacionNueva.jsx)
   // ======================================================
+  const irAPaso = (n) => setPaso(n);
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="card p-6 shadow-lg rounded-xl">
         <h1 className="text-3xl font-bold text-slate-800 mb-6">
-          Editar Evaluación
+          Editar Diagnóstico Ambiental
         </h1>
 
-        {/* Pasos */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {[1, 2, 3, 4].map((num) => (
-              <div key={num} className="flex items-center flex-1">
-                <div
-                  onClick={() => setPaso(num)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold cursor-pointer transition
-                  ${paso === num
+        {/* Indicador pasos (igual que en EvaluacionNueva.jsx) */}
+        <div className="flex justify-between mb-6">
+          {["General", "Carbono", "Agua", "Residuos"].map((et, i) => {
+            const num = i + 1;
+            const activo = paso === num;
+            const completado = paso > num;
+
+            return (
+              <button
+                key={et}
+                type="button"
+                onClick={() => irAPaso(num)}
+                className={`flex-1 mx-1 py-2 rounded-lg text-sm font-semibold transition
+                  ${
+                    activo
                       ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-500 hover:bg-gray-300"
-                    }`}
-                >
-                  {num}
-                </div>
-
-                {num < 4 && (
-                  <div
-                    className={`flex-1 h-1 mx-2 ${paso > num ? "bg-green-500" : "bg-gray-200"
-                      }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-between mt-2 text-xs text-gray-600">
-            <span>General</span>
-            <span>Carbono</span>
-            <span>Agua</span>
-            <span>Residuos</span>
-          </div>
+                      : completado
+                      ? "bg-green-200 text-green-800"
+                      : "bg-gray-200 text-gray-600"
+                  }
+                `}
+              >
+                {num}. {et}
+              </button>
+            );
+          })}
         </div>
 
         {/* FORMULARIO */}
         <form onSubmit={handleSubmit}>
-          {/* ---------- PASO 1 ---------- */}
+          {/* ---------------- PASO 1 ---------------- */}
           <PasoContainer visible={paso === 1}>
             <PasoTitulo titulo="1. Información General" />
 
             <Input
-              label="Nombre de la Empresa *"
+              label="Nombre de la Empresa"
               name="companyName"
               type="text"
               value={formData.companyName}
@@ -278,7 +279,7 @@ export default function EditarEvaluacion() {
             />
 
             <Select
-              label="Sector Industrial *"
+              label="Sector Industrial"
               name="sector"
               value={formData.sector}
               onChange={handleInput}
@@ -297,7 +298,7 @@ export default function EditarEvaluacion() {
             />
 
             <Input
-              label="Período de Evaluación *"
+              label="Período (Ej: 1er Semestre 2024)"
               name="period"
               type="text"
               value={formData.period}
@@ -305,12 +306,12 @@ export default function EditarEvaluacion() {
             />
           </PasoContainer>
 
-          {/* ---------- PASO 2: Carbono ---------- */}
+          {/* ---------------- PASO 2: Carbono ---------------- */}
           <PasoContainer visible={paso === 2}>
             <PasoTitulo titulo="2. Emisiones de Carbono" />
 
             <Input
-              label="Electricidad (kWh)"
+              label="Electricidad (kWh/año)"
               name="electricidad"
               type="number"
               value={formData.carbonData.electricidad}
@@ -318,7 +319,7 @@ export default function EditarEvaluacion() {
             />
 
             <Input
-              label="Gas Natural (kg)"
+              label="Gas Natural (kg/año)"
               name="gas"
               type="number"
               value={formData.carbonData.gas}
@@ -326,7 +327,7 @@ export default function EditarEvaluacion() {
             />
 
             <Input
-              label="Diésel (litros)"
+              label="Diésel (litros/año)"
               name="diesel"
               type="number"
               value={formData.carbonData.diesel}
@@ -334,7 +335,7 @@ export default function EditarEvaluacion() {
             />
 
             <Input
-              label="Bencina (litros)"
+              label="Bencina (litros/año)"
               name="bencina"
               type="number"
               value={formData.carbonData.bencina}
@@ -342,12 +343,12 @@ export default function EditarEvaluacion() {
             />
           </PasoContainer>
 
-          {/* ---------- PASO 3: Agua ---------- */}
+          {/* ---------------- PASO 3: Agua ---------------- */}
           <PasoContainer visible={paso === 3}>
             <PasoTitulo titulo="3. Consumo de Agua" />
 
             <Input
-              label="Consumo Mensual (litros)"
+              label="Consumo Mensual (litros/mes)"
               name="consumoMensual"
               type="number"
               value={formData.waterData.consumoMensual}
@@ -369,12 +370,12 @@ export default function EditarEvaluacion() {
             />
           </PasoContainer>
 
-          {/* ---------- PASO 4: Residuos + REP ---------- */}
+          {/* ---------------- PASO 4: Residuos + REP ---------------- */}
           <PasoContainer visible={paso === 4}>
             <PasoTitulo titulo="4. Gestión de Residuos" />
 
             <Input
-              label="Residuos Totales (kg)"
+              label="Residuos Totales (kg/año)"
               name="residuosTotales"
               type="number"
               value={formData.wasteData.residuosTotales}
@@ -382,7 +383,7 @@ export default function EditarEvaluacion() {
             />
 
             <Input
-              label="Residuos Reciclados (kg)"
+              label="Residuos Reciclados (kg/año)"
               name="residuosReciclados"
               type="number"
               value={formData.wasteData.residuosReciclados}
@@ -395,20 +396,23 @@ export default function EditarEvaluacion() {
                 Gestión de Residuos - Ley REP (Editar / Agregar)
               </h3>
 
-              {/* Agregar nuevo REP */}
+              {/* Formulario para agregar nuevo producto REP */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Producto Prioritario"
                   name="producto"
                   value={nuevoRep.producto}
                   onChange={(e) =>
-                    setNuevoRep({ ...nuevoRep, producto: e.target.value })
+                    setNuevoRep((prev) => ({
+                      ...prev,
+                      producto: e.target.value,
+                    }))
                   }
                   options={[
                     "Envases y Embalajes",
                     "Neumáticos",
                     "Aceites Lubricantes",
-                    "Aparatos Electrónicos",
+                    "Aparatos Eléctricos/Electrónicos",
                     "Pilas",
                     "Baterías",
                     "Textiles",
@@ -420,7 +424,10 @@ export default function EditarEvaluacion() {
                   name="subcategoria"
                   value={nuevoRep.subcategoria}
                   onChange={(e) =>
-                    setNuevoRep({ ...nuevoRep, subcategoria: e.target.value })
+                    setNuevoRep((prev) => ({
+                      ...prev,
+                      subcategoria: e.target.value,
+                    }))
                   }
                 />
 
@@ -430,7 +437,10 @@ export default function EditarEvaluacion() {
                   name="anio"
                   value={nuevoRep.anio}
                   onChange={(e) =>
-                    setNuevoRep({ ...nuevoRep, anio: e.target.value })
+                    setNuevoRep((prev) => ({
+                      ...prev,
+                      anio: e.target.value,
+                    }))
                   }
                 />
 
@@ -444,15 +454,15 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadValorizada && valor
                         ? (Number(nuevoRep.cantidadValorizada) /
-                          Number(valor)) *
-                        100
+                            Number(valor)) *
+                          100
                         : 0;
 
-                    setNuevoRep({
-                      ...nuevoRep,
+                    setNuevoRep((prev) => ({
+                      ...prev,
                       cantidadGenerada: valor,
                       porcentajeValorizacion: porcentaje,
-                    });
+                    }));
                   }}
                 />
 
@@ -466,25 +476,27 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadGenerada && valor
                         ? (Number(valor) /
-                          Number(nuevoRep.cantidadGenerada)) *
-                        100
+                            Number(nuevoRep.cantidadGenerada)) *
+                          100
                         : 0;
 
-                    setNuevoRep({
-                      ...nuevoRep,
+                    setNuevoRep((prev) => ({
+                      ...prev,
                       cantidadValorizada: valor,
                       porcentajeValorizacion: porcentaje,
-                    });
+                    }));
                   }}
                 />
               </div>
 
+              {/* % valorización en vivo */}
               {nuevoRep.porcentajeValorizacion > 0 && (
                 <p className="text-sm text-green-600 mt-1">
                   {nuevoRep.porcentajeValorizacion.toFixed(1)}% valorizado
                 </p>
               )}
 
+              {/* Botón agregar */}
               <button
                 type="button"
                 onClick={agregarProductoRep}
@@ -493,7 +505,7 @@ export default function EditarEvaluacion() {
                 + Agregar Producto REP
               </button>
 
-              {/* Lista REP */}
+              {/* Lista REP ya registrados */}
               {repList.length > 0 && (
                 <div className="mt-6">
                   <h4 className="font-semibold text-slate-800 mb-2">
@@ -504,7 +516,7 @@ export default function EditarEvaluacion() {
                     {repList.map((item, i) => (
                       <li
                         key={i}
-                        className="p-3 bg-white border rounded flex justify-between items-center"
+                        className="p-3 bg-white border rounded flex justify-between items-center gap-4"
                       >
                         <div>
                           <p className="font-medium">{item.producto}</p>
