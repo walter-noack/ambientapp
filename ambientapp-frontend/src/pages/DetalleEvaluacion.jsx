@@ -6,8 +6,9 @@ import { getEvaluacionById, getResiduosRep } from "../services/api";
 import BarraAmbiental from "../components/BarraAmbiental";
 import RadarAmbiental from "../components/graficos/RadarAmbiental";
 import IndicadoresAmbientales from "../components/graficos/IndicadoresAmbientales";
-
+import GraficoCarbono from "../components/graficos/GraficoCarbono";
 import { calcularEmisionesCarbono } from "../utils/calculosHuella";
+import GraficoRep from "../components/graficos/GraficoREP";
 
 import { Chart } from "chart.js/auto";
 import ChartDataLabels from "chartjs-plugin-datalabels";
@@ -162,6 +163,7 @@ export default function DetalleEvaluacion() {
   const [repLoaded, setRepLoaded] = useState(false);
 
   // Refs para gráficos Chart.js
+  const canvasCarbonoRef = useRef(null);
   const graficoCarbonoRef = useRef(null);
   const graficoRepBarrasRef = useRef(null);
   const graficoRepLineasRef = useRef(null);
@@ -199,61 +201,48 @@ export default function DetalleEvaluacion() {
   useEffect(() => {
     if (!evaluacion) return;
 
-    const emisiones = calcularEmisionesCarbono(evaluacion.carbonData || {});
-    if (!emisiones) return;
-
-    const alcance1Ton = emisiones.alcance1 / 1000;
-    const alcance2Ton = emisiones.alcance2 / 1000;
-
-    if (graficoCarbonoRef.current) graficoCarbonoRef.current.destroy();
-
-    const canvas = document.getElementById("graficoCarbono");
+    const canvas = canvasCarbonoRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    // evitar duplicados
+    if (graficoCarbonoRef.current) {
+      graficoCarbonoRef.current.destroy();
+    }
 
-    graficoCarbonoRef.current = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Alcance 1", "Alcance 2"],
-        datasets: [
-          {
-            data: [alcance1Ton, alcance2Ton],
-            backgroundColor: ["#16a34a", "#3b82f6"],
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        maintainAspectRatio: false,
-        cutout: "65%",
-        plugins: {
-          legend: { display: false },
-          datalabels: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const label = context.label;
-                const d = emisiones.detalle;
+    // esperar dos ciclos para asegurar tamaño real
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const emisiones = calcularEmisionesCarbono(evaluacion.carbonData || {});
+        const alcance1Ton = emisiones.alcance1 / 1000;
+        const alcance2Ton = emisiones.alcance2 / 1000;
 
-                if (label === "Alcance 1") {
-                  return [
-                    `Alcance 1: ${alcance1Ton.toFixed(2)} tCO₂e`,
-                    `• Diésel: ${(d.diesel / 1000).toFixed(2)} t`,
-                    `• Bencina: ${(d.bencina / 1000).toFixed(2)} t`,
-                    `• Gas Natural: ${(d.gasNatural / 1000).toFixed(2)} t`,
-                  ];
-                }
-                return [
-                  `Alcance 2: ${alcance2Ton.toFixed(2)} tCO₂e`,
-                  `• Electricidad: ${(d.electricidad / 1000).toFixed(2)} t`,
-                ];
+        graficoCarbonoRef.current = new Chart(canvas, {
+          type: "doughnut",
+          data: {
+            labels: ["Alcance 1", "Alcance 2"],
+            datasets: [
+              {
+                data: [alcance1Ton, alcance2Ton],
+                backgroundColor: ["#16a34a", "#3b82f6"],
+                borderWidth: 1,
               },
+            ],
+          },
+          options: {
+            maintainAspectRatio: false,
+            cutout: "65%",
+            plugins: {
+              legend: { display: false },
+              datalabels: { display: false },
             },
           },
-        },
-      },
+        });
+      });
     });
+
+    return () => {
+      if (graficoCarbonoRef.current) graficoCarbonoRef.current.destroy();
+    };
   }, [evaluacion]);
 
   // ---------------------------------------------------------------------------
@@ -366,8 +355,8 @@ export default function DetalleEvaluacion() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4" />
-          <p className="text-gray-600">Cargando evaluación...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Cargando diagnóstico ambiental...</p>
         </div>
       </div>
     );
@@ -399,145 +388,195 @@ export default function DetalleEvaluacion() {
   const textoGlobal = analisisGlobal(ev, emisionesVista, residuosRep);
 
   // ---------------------------------------------------------------------------
-  // RENDER
+  // RENDER (diseño B1: minimalista corporativo)
   // ---------------------------------------------------------------------------
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      {/* TÍTULO */}
-      <h1 className="text-3xl font-bold text-slate-800">Detalle de Evaluación</h1>
+    <div className="max-w-5xl mx-auto px-5 py-8 lg:py-10 space-y-6">
+      {/* TÍTULO PRINCIPAL */}
+      <header className="mb-2">
+        <h1 className="text-2xl lg:text-3xl font-semibold text-slate-900 tracking-tight">
+          Detalle del Diagnóstico Ambiental
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Resultado consolidado del diagnóstico aplicado a la organización.
+        </p>
+      </header>
 
-      <div className="bg-white shadow-md rounded-xl p-6 border border-slate-200 space-y-10">
+      {/* CARD PRINCIPAL */}
+      <div className="bg-white shadow-sm rounded-2xl border border-slate-200/80 px-6 py-6 lg:px-8 lg:py-7 space-y-8">
+
         {/* ENCABEZADO */}
-        <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">{ev.companyName}</h2>
-            <p className="text-slate-600">Periodo: {ev.period}</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-slate-400 font-medium mb-1">
+              Organización evaluada
+            </p>
+            <h2 className="text-xl font-semibold text-slate-900">
+              {ev.companyName}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Período evaluado:{" "}
+              <span className="font-medium text-slate-700">{ev.period}</span>
+            </p>
           </div>
 
-          <div
-            className="px-4 py-3 rounded-xl border text-right shadow-sm bg-slate-50"
-            style={{ borderColor: colorNivel }}
-          >
-            <p className="text-sm text-slate-500">Puntaje final</p>
-            <p className="text-xl font-bold" style={{ color: colorNivel }}>
-              {ev.finalScore} / 100
-            </p>
-            <p className="text-xs font-semibold mt-1" style={{ color: colorNivel }}>
-              Nivel {ev.nivel}
-            </p>
+          <div className="flex flex-col items-end gap-2">
+            <div
+              className="px-4 py-2.5 rounded-xl border text-right shadow-sm bg-white"
+              style={{ borderColor: colorNivel }}
+            >
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
+                Puntaje global
+              </p>
+              <p
+                className="text-2xl font-semibold leading-tight"
+                style={{ color: colorNivel }}
+              >
+                {ev.finalScore.toFixed(1)} / 100
+              </p>
+              <p className="text-[11px] font-semibold mt-1 text-slate-500">
+                Nivel:{" "}
+                <span style={{ color: colorNivel }} className="font-bold">
+                  {ev.nivel}
+                </span>
+              </p>
+            </div>
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-600">
+              Diagnóstico Ambiental · AmbientAPP
+            </span>
           </div>
         </div>
+
         {/* EXPLICACIÓN DE CÓMO SE CALCULAN LOS PUNTAJES */}
-        <div className="bg-slate-50 border rounded-xl p-4 shadow-sm">
-          <h3 className="text-xl font-bold text-slate-800">
-            ¿Cómo se obtuvieron estos resultados?
-          </h3> <br />
+        <section className="bg-slate-50/80 border border-slate-100 rounded-xl px-4 py-3.5">
+          <p className="text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-[0.16em]">
+            Cómo leer este diagnóstico
+          </p>
           <p className="text-sm text-slate-700 leading-relaxed">
-            Los puntajes ambientales se calculan considerando tres dimensiones clave:
+            Los puntajes ambientales se construyen a partir de tres dimensiones:
             <strong> carbono</strong>, <strong>agua</strong> y <strong>residuos</strong>.
             Cada una recibe un puntaje entre 0 y 100 según el desempeño registrado:
-            <br /><br />
-            • <strong>Carbono</strong>: basado en la huella de carbono estimada en toneladas de CO₂ equivalente (tCO₂e) considerando los <em>Alcances 1 y 2</em>. Mientras mayor es la emisión total, menor es el puntaje asignado.<br />
-            • <strong>Agua</strong>: depende del volumen de consumo hídrico declarado. Consumos más altos reducen el puntaje final.<br />
-            • <strong>Residuos</strong>: se evalúa el porcentaje de valorización respecto del total de residuos generados. Una valorización alta se traduce en un mejor puntaje.<br /><br />
+            <br />
+            <br />
+            • <strong>Carbono</strong>: basado en la huella de carbono estimada en toneladas de CO₂ equivalente (tCO₂e) considerando los <em>Alcances 1 y 2</em>.
+            Mientras mayor es la emisión total, menor es el puntaje asignado.
+            <br />
+            • <strong>Agua</strong>: depende del volumen de consumo hídrico declarado. Consumos más altos reducen el puntaje final.
+            <br />
+            • <strong>Residuos</strong>: se evalúa el porcentaje de valorización respecto del total de residuos generados. Una valorización alta se traduce en un mejor puntaje.
+            <br />
+            <br />
             El <strong>puntaje final</strong> corresponde a un promedio ponderado:
-            <strong> 40% carbono</strong>, <strong>30% agua</strong> y <strong>30% residuos</strong>.
-            Estas ponderaciones permiten identificar con claridad las áreas donde la empresa presenta mejor desempeño y aquellas donde existen mayores oportunidades de mejora.
+            <strong> 40% carbono</strong>, <strong>30% agua</strong> y <strong>30% residuos</strong>,
+            permitiendo identificar con claridad las áreas con mejor desempeño y aquellas con mayor potencial de mejora.
           </p>
-        </div>
+        </section>
 
         {/* Barra Ambiental */}
-        <BarraAmbiental score={ev.finalScore} nivel={ev.nivel} />
+        <section>
+          <BarraAmbiental score={ev.finalScore} nivel={ev.nivel} />
+        </section>
 
         {/* ===================== PERFIL AMBIENTAL (RADAR + TEXTO) ===================== */}
-        <div className="p-6 bg-slate-50 rounded-xl border shadow-sm space-y-4">
-          <h3 className="text-xl font-bold text-slate-800">
-            Perfil Ambiental de la Empresa
-          </h3>
-          <p className="text-sm text-slate-600">
-            El radar sintetiza el desempeño ambiental en las tres dimensiones
-            evaluadas: carbono, agua y residuos. Valores más altos indican una
-            mejor gestión relativa en cada eje.
-          </p>
-
-          <div className="w-full flex justify-center">
-            <div className="max-w-[360px] w-full">
-              <RadarAmbiental scores={ev.scores} />
-            </div>
-          </div>
-
-          <p className="text-sm text-slate-700 leading-relaxed">
-            {textoRadar}
-          </p>
-        </div>
-
-        {/* ===================== KPIs AMBIENTALES ===================== */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-bold text-slate-800">
-            Indicadores clave de desempeño
-          </h3>
-          <IndicadoresAmbientales emisiones={emisionesVista} evaluacion={ev} />
-        </div>
-
-        {/* ========================= HUELLA DE CARBONO ========================= */}
-        <div className="p-6 bg-slate-50 rounded-xl border shadow-sm space-y-4">
-          <h3 className="text-xl font-bold text-slate-800">
-            Huella de Carbono – Alcances 1 y 2
-          </h3>
-          <p className="text-sm text-slate-600">
-            Se presentan los dos alcances obligatorios de reporte según el
-            estándar chileno: combustibles (Alcance 1) y electricidad (Alcance 2).
-          </p>
-
-          <div className="w-full flex justify-center">
-            <div className="max-w-[250px] w-full relative">
-              <canvas id="graficoCarbono"></canvas>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-xs text-slate-500">Total</p>
-                <p className="text-lg font-bold text-slate-800">
-                  {totalTonVista.toFixed(2)} tCO₂e
-                </p>
+        <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-6 items-start">
+          <div className="border border-slate-100 rounded-xl px-4 py-4 bg-slate-50/60">
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">
+              Perfil ambiental de la empresa
+            </h3>
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              El gráfico radar resume el desempeño en <strong>carbono</strong>,{" "}
+              <strong>agua</strong> y <strong>residuos</strong>.
+              Valores más cercanos a 100 indican una gestión más consolidada en esa dimensión.
+            </p>
+            <div className="w-full flex justify-center">
+              <div className="max-w-[320px] w-full">
+                <RadarAmbiental scores={ev.scores} />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-center gap-6 mt-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-green-600" />
-              Alcance 1 (Combustibles)
+          <div className="border border-slate-100 rounded-xl px-4 py-4 bg-white">
+            <h4 className="text-sm font-semibold text-slate-900 mb-2">
+              Lectura del perfil
+            </h4>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {textoRadar}
+            </p>
+          </div>
+        </section>
+
+        {/* ===================== KPIs AMBIENTALES ===================== */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Indicadores clave de desempeño
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Valores expresados en tCO₂e, litros y kg según corresponda.
+            </p>
+          </div>
+          <IndicadoresAmbientales emisiones={emisionesVista} evaluacion={ev} />
+        </section>
+
+        {/* ========================= HUELLA DE CARBONO ========================= */}
+        <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] gap-6 items-start">
+          <div className="border border-slate-100 rounded-xl px-4 py-4 bg-slate-50/60">
+            <h3 className="text-sm font-semibold text-slate-900 mb-1.5">
+              Huella de carbono – Alcances 1 y 2
+            </h3>
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              Se muestran los dos alcances obligatorios de reporte según estándar chileno:
+              <strong> combustibles (Alcance 1)</strong> y{" "}
+              <strong>electricidad (Alcance 2)</strong>.
+            </p>
+
+            <div className="w-full flex justify-center">
+              <GraficoCarbono evaluacion={ev} />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-blue-500" />
-              Alcance 2 (Electricidad)
+
+            <div className="flex justify-center gap-6 mt-3 text-xs">
+              <div className="flex items-center gap-2 text-slate-600">
+                <span className="w-3 h-3 rounded-full bg-green-600" />
+                Alcance 1 (Combustibles)
+              </div>
+              <div className="flex items-center gap-2 text-slate-600">
+                <span className="w-3 h-3 rounded-full bg-blue-500" />
+                Alcance 2 (Electricidad)
+              </div>
             </div>
           </div>
 
-          <p className="text-sm text-slate-700 leading-relaxed">
-            {textoCarbono}
-          </p>
-        </div>
+          <div className="border border-slate-100 rounded-xl px-4 py-4 bg-white">
+            <h4 className="text-sm font-semibold text-slate-900 mb-2">
+              Interpretación de la huella
+            </h4>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {textoCarbono}
+            </p>
+          </div>
+        </section>
 
         {/* ===================== LEY REP ===================== */}
-        <div className="p-6 bg-slate-50 rounded-xl border shadow-sm space-y-4">
-          <h3 className="text-xl font-bold text-slate-800">
-            Gestión de Residuos – Ley REP
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Gestión de residuos – Ley REP
           </h3>
 
           {repLoaded && residuosRep.length > 0 ? (
             <>
-              <p className="text-sm text-slate-600">
-                Se comparan los residuos totales registrados en la evaluación con
-                la generación de productos prioritarios bajo Ley REP para el
-                último año disponible. Cuando existen registros de más de un año,
-                se muestra además la evolución del porcentaje de valorización.
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Se comparan los residuos totales registrados en el diagnóstico con
+                la generación de productos prioritarios bajo Ley REP para el último
+                año disponible. Cuando hay más de un año de datos, se muestra también
+                la evolución del porcentaje de valorización.
               </p>
 
               {/* Último registro */}
-              <div className="mb-4">
-                <h4 className="font-semibold text-slate-800 mb-2">
-                  Último registro disponible
+              <div className="border border-slate-100 rounded-xl px-4 py-3 bg-slate-50/60">
+                <h4 className="text-xs font-semibold text-slate-900 mb-2 uppercase tracking-[0.16em]">
+                  Último registro disponible REP
                 </h4>
-                <div className="grid grid-cols-2 gap-2 text-sm text-slate-700">
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-700">
                   <p>
                     <strong>Producto:</strong> {residuosRep[0].producto}
                   </p>
@@ -560,11 +599,16 @@ export default function DetalleEvaluacion() {
               </div>
 
               {/* Barras */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-slate-800 mb-2">
-                  Total vs Productos Prioritarios (kg/año)
+              <div>
+                <h4 className="text-xs font-semibold text-slate-900 mb-2">
+                  Total vs productos prioritarios (kg/año)
                 </h4>
-                <canvas id="graficoRepBarras" height="180"></canvas>
+                <div className="border border-slate-100 rounded-xl px-3 py-3 bg-white">
+                  <GraficoRep
+                    residuosRep={residuosRep}
+                    totalResiduosKg={ev?.wasteData?.residuosTotales || 0}
+                  />
+                </div>
               </div>
 
               {/* Líneas */}
@@ -572,53 +616,64 @@ export default function DetalleEvaluacion() {
                 const años = [...new Set(residuosRep.map((r) => r.anio))].sort();
                 if (años.length > 1) {
                   return (
-                    <div className="mb-2">
-                      <h4 className="font-semibold text-slate-800 mb-2">
+                    <div>
+                      <h4 className="text-xs font-semibold text-slate-900 mb-2">
                         Evolución del % de valorización
                       </h4>
-                      <canvas id="graficoRepLinea" height="140"></canvas>
+                      <div className="border border-slate-100 rounded-xl px-3 py-3 bg-white">
+                        <canvas id="graficoRepLinea" height="140"></canvas>
+                      </div>
                     </div>
                   );
                 }
                 return null;
               })()}
 
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {textoRep}
-              </p>
+              <div className="border border-slate-100 rounded-xl px-4 py-3 bg-white">
+                <h4 className="text-xs font-semibold text-slate-900 mb-2">
+                  Interpretación de la gestión REP
+                </h4>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  {textoRep}
+                </p>
+              </div>
             </>
           ) : (
-            <p className="text-sm text-slate-500">
-              No hay registros de Ley REP asociados a esta empresa todavía.
-            </p>
+            <div className="border border-amber-100 bg-amber-50 rounded-xl px-4 py-3">
+              <p className="text-sm text-amber-800">
+                No hay registros de Ley REP asociados a esta empresa todavía.
+                Se recomienda revisar la obligación de declarar productos prioritarios
+                según el rubro y confirmar la inscripción en el sistema de gestión correspondiente.
+              </p>
+            </div>
           )}
-        </div>
+        </section>
 
         {/* ===================== ANÁLISIS GLOBAL ===================== */}
-        <div className="p-6 bg-white rounded-xl border border-dashed border-slate-300">
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
+        <section className="border border-slate-100 rounded-xl px-4 py-4 bg-white">
+          <h3 className="text-sm font-semibold text-slate-900 mb-2">
             Análisis integrado y prioridades
           </h3>
           <p className="text-sm text-slate-700 leading-relaxed">
             {textoGlobal}
           </p>
-        </div>
+        </section>
       </div>
 
       {/* BOTONES */}
-      <div className="flex flex-col gap-3 mt-4 max-w-sm mx-auto">
+      <div className="flex flex-col sm:flex-row gap-3 mt-2 max-w-md mx-auto">
         <button
           onClick={() => navigate("/evaluaciones")}
           className="btn-secondary w-full"
         >
-          ← Volver
+          ← Volver al listado
         </button>
 
         <button
           onClick={() => navigate(`/pdf/${ev._id}`)}
           className="btn-primary w-full"
         >
-          Exportar PDF
+          Exportar informe en PDF
         </button>
       </div>
     </div>
