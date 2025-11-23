@@ -32,7 +32,7 @@ export default function EditarEvaluacion() {
     sector: "",
     period: "",
     carbonData: { electricidad: 0, gas: 0, diesel: 0, bencina: 0 },
-    waterData: { consumoMensual: 0, fuentePrincipal: "" },
+    waterData: { consumoMensual: 0, fuentePrincipal: "", intensidadTipo: "", intensidadValor: "", },
     wasteData: { residuosTotales: 0, residuosReciclados: 0 },
     empresaId: null,
   });
@@ -68,7 +68,12 @@ export default function EditarEvaluacion() {
           sector: data.sector,
           period: data.period,
           carbonData: data.carbonData,
-          waterData: data.waterData,
+          waterData: {
+            consumoMensual: data.waterData.consumoMensual || 0,
+            fuentePrincipal: data.waterData.fuentePrincipal || "",
+            intensidadTipo: data.waterData.intensidadTipo || "",
+            intensidadValor: data.waterData.intensidadValor || "",
+          },
           wasteData: data.wasteData,
           empresaId: data.empresaId,
         });
@@ -97,16 +102,16 @@ export default function EditarEvaluacion() {
     setFormData((prev) =>
       categoria
         ? {
-            ...prev,
-            [categoria]: {
-              ...prev[categoria],
-              [name]: value,
-            },
-          }
-        : {
-            ...prev,
+          ...prev,
+          [categoria]: {
+            ...prev[categoria],
             [name]: value,
-          }
+          },
+        }
+        : {
+          ...prev,
+          [name]: value,
+        }
     );
   };
 
@@ -160,13 +165,75 @@ export default function EditarEvaluacion() {
   const eliminarProductoRep = (index) => {
     setRepList((prev) => prev.filter((_, i) => i !== index));
   };
+  // ======================================================
+  // 🟢 VALIDACIÓN (similar a EvaluacionNueva)
+  // ======================================================
+  const validar = () => {
+    const err = {};
+
+    // --- General ---
+    if (!formData.companyName.trim())
+      err.companyName = "Ingrese nombre";
+
+    if (!formData.sector)
+      err.sector = "Seleccione sector";
+
+    if (!formData.period.trim())
+      err.period = "Ingrese período";
+
+    // --- Carbono ---
+    const c = formData.carbonData;
+    ["electricidad", "gas", "diesel", "bencina"].forEach((k) => {
+      const v = Number(c[k]);
+      if (!v || v <= 0) err[k] = "Debe ser mayor a 0";
+    });
+
+    // --- Agua ---
+    const w = formData.waterData;
+
+    if (!w.consumoMensual || Number(w.consumoMensual) <= 0)
+      err.consumoMensual = "Debe ser mayor a 0";
+
+    if (!w.fuentePrincipal)
+      err.fuentePrincipal = "Seleccione fuente";
+
+    // Intensidad hídrica
+    if (w.intensidadTipo && (!w.intensidadValor || Number(w.intensidadValor) <= 0)) {
+      err.intensidadValor = "Debe ser mayor a 0";
+    }
+
+    // --- Residuos ---
+    const r = formData.wasteData;
+
+    if (!r.residuosTotales || Number(r.residuosTotales) <= 0)
+      err.residuosTotales = "Debe ser mayor a 0";
+
+    if (r.residuosReciclados < 0)
+      err.residuosReciclados = "Dato inválido";
+
+    if (Number(r.residuosReciclados) > Number(r.residuosTotales))
+      err.residuosReciclados = "No puede superar lo generado";
+
+    setErrores(err);
+    return Object.keys(err).length === 0;
+  };
 
   // ======================================================
   // 💾 GUARDAR CAMBIOS
   // ======================================================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+
+    if (!validar()) {
+      alert("Hay errores en el formulario");
+      return;
+    }
+
     setLoading(true);
+    setLoading(true);
+
+
 
     try {
       // Recalcular score a partir del formData editado
@@ -181,6 +248,7 @@ export default function EditarEvaluacion() {
         scores: calculos.scores,
         finalScore: calculos.finalScore,
         nivel: calculos.nivel,
+        intensidadHidrica: calculos.intensidadHidrica,
         recomendaciones,
       };
 
@@ -249,10 +317,9 @@ export default function EditarEvaluacion() {
                 type="button"
                 onClick={() => irAPaso(num)}
                 className={`flex-1 mx-1 py-2 rounded-lg text-sm font-semibold transition
-                  ${
-                    activo
-                      ? "bg-green-600 text-white"
-                      : completado
+                  ${activo
+                    ? "bg-green-600 text-white"
+                    : completado
                       ? "bg-green-200 text-green-800"
                       : "bg-gray-200 text-gray-600"
                   }
@@ -348,7 +415,7 @@ export default function EditarEvaluacion() {
             <PasoTitulo titulo="3. Consumo de Agua" />
 
             <Input
-              label="Consumo Mensual (litros/mes)"
+              label="Consumo Mensual (litros)"
               name="consumoMensual"
               type="number"
               value={formData.waterData.consumoMensual}
@@ -368,6 +435,64 @@ export default function EditarEvaluacion() {
                 "Mixta",
               ]}
             />
+
+            {/* NUEVO — Tipo de Intensidad Hídrica */}
+            <Select
+              label="Tipo de Intensidad Hídrica"
+              name="intensidadTipo"
+              value={formData.waterData.intensidadTipo}
+              onChange={(e) => handleInput(e, "waterData")}
+              options={[
+                "Consumo por unidad de producción",
+                "Consumo por persona",
+              ]}
+            />
+
+            {/* MODO: Consumo por persona */}
+            {formData.waterData.intensidadTipo === "Consumo por persona" && (
+              <>
+                <Input
+                  label="Número de trabajadores"
+                  name="trabajadores"
+                  type="number"
+                  value={formData.waterData.trabajadores || ""}
+                  onChange={(e) => handleInput(e, "waterData")}
+                  error={errores.trabajadores}
+                  placeholder="Ej: 25"
+                />
+
+                <Input
+                  label="Intensidad hídrica calculada (L/persona·día)"
+                  name="intensidadValor"
+                  type="number"
+                  value={formData.waterData.intensidadValor || ""}
+                  disabled={true}
+                />
+              </>
+            )}
+
+            {/* MODO: Consumo por unidad de producción */}
+            {formData.waterData.intensidadTipo === "Consumo por unidad de producción" && (
+              <>
+                <Input
+                  label="Producción mensual (unidades/mes)"
+                  name="produccion"
+                  type="number"
+                  value={formData.waterData.produccion || ""}
+                  onChange={(e) => handleInput(e, "waterData")}
+                  error={errores.produccion}
+                  placeholder="Ej: 1200"
+                />
+
+                <Input
+                  label="Intensidad hídrica calculada (L/unidad)"
+                  name="intensidadValor"
+                  type="number"
+                  value={formData.waterData.intensidadValor || ""}
+                  disabled={true}
+                />
+              </>
+            )}
           </PasoContainer>
 
           {/* ---------------- PASO 4: Residuos + REP ---------------- */}
@@ -454,8 +579,8 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadValorizada && valor
                         ? (Number(nuevoRep.cantidadValorizada) /
-                            Number(valor)) *
-                          100
+                          Number(valor)) *
+                        100
                         : 0;
 
                     setNuevoRep((prev) => ({
@@ -476,8 +601,8 @@ export default function EditarEvaluacion() {
                     const porcentaje =
                       nuevoRep.cantidadGenerada && valor
                         ? (Number(valor) /
-                            Number(nuevoRep.cantidadGenerada)) *
-                          100
+                          Number(nuevoRep.cantidadGenerada)) *
+                        100
                         : 0;
 
                     setNuevoRep((prev) => ({

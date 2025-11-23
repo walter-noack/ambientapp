@@ -42,13 +42,13 @@ export default async function generarPDF(evaluacion) {
   const carbonoTon = totalTon * 1000; // en kg
   const aguaLitros = Number(
     evaluacion?.waterData?.consumoMensual ??
-    evaluacion?.resultadosHuella?.agua?.consumoLitros ??
-    0
+      evaluacion?.resultadosHuella?.agua?.consumoLitros ??
+      0
   );
   const residuosKg = Number(
     evaluacion?.wasteData?.residuosTotales ??
-    evaluacion?.resultadosHuella?.residuos?.residuosTotalesKg ??
-    0
+      evaluacion?.resultadosHuella?.residuos?.residuosTotalesKg ??
+      0
   );
 
   // REP (traemos desde backend si hay empresa asociada)
@@ -477,9 +477,9 @@ export default async function generarPDF(evaluacion) {
       valor:
         carbonoTon > 0
           ? `${carbonoTon.toLocaleString("es-CL", {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
-          })} kgCO₂e`
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })} kgCO₂e`
           : "—",
       color: "#111827",
       detalle: "Suma de emisiones A1 y A2 para el período evaluado.",
@@ -621,21 +621,21 @@ export default async function generarPDF(evaluacion) {
   footer1.textContent = "Página 1 de 2 — Diagnóstico generado con AmbientAPP";
   page1.appendChild(footer1);
 
-  // -----------------------------------------------------------
-  // PAGE 2: ANÁLISIS DETALLADO – PÁGINA 2
-  // -----------------------------------------------------------
+// -----------------------------------------------------------
+// PAGE 2: ANÁLISIS DETALLADO – PÁGINA 2
+// -----------------------------------------------------------
 
-  const analisisWrapper = document.createElement("div");
-  analisisWrapper.style.marginTop = "10px";
-  analisisWrapper.style.pageBreakBefore = "always"; // salto forzado a página 2
+const analisisWrapper = document.createElement("div");
+analisisWrapper.style.marginTop = "10px";
+analisisWrapper.style.pageBreakBefore = "always"; // salto forzado a página 2
 
-  // ===========================================================
-  // 6.1 PUNTAJE (Gestión Técnica)
-  // ===========================================================
-  const secPuntaje = document.createElement("div");
-  secPuntaje.style.marginBottom = "16px";
+// ===========================================================
+// 6.1 PUNTAJE (Gestión Técnica)
+// ===========================================================
+const secPuntaje = document.createElement("div");
+secPuntaje.style.marginBottom = "16px";
 
-  secPuntaje.innerHTML = `
+secPuntaje.innerHTML = `
   <h2 style="font-size:14px; font-weight:bold; margin-bottom:6px;">
     1. Análisis del Puntaje (Gestión Técnica)
   </h2>
@@ -655,41 +655,41 @@ export default async function generarPDF(evaluacion) {
   </p>
 `;
 
-  analisisWrapper.appendChild(secPuntaje);
+analisisWrapper.appendChild(secPuntaje);
 
-  // ===========================================================
-  // RECOMENDACIONES POR NIVEL (debe ir ANTES de usar recs)
-  // ===========================================================
-  const recomendacionesPorNivel = {
-    Avanzado: [
-      "Mantener auditorías periódicas y métricas avanzadas por categoría ambiental.",
-      "Explorar proyectos de innovación en economía circular y eficiencia energética.",
-      "Evaluar certificaciones ambientales (por ejemplo, ISO 14001) como siguiente paso.",
-    ],
-    Intermedio: [
-      "Formalizar metas anuales de reducción para carbono, agua y residuos.",
-      "Reforzar la trazabilidad de datos mediante registros mensuales y responsables definidos.",
-      "Implementar mejoras en eficiencia energética e hídrica con indicadores de seguimiento.",
-    ],
-    Básico: [
-      "Completar un diagnóstico más detallado de línea base para las principales fuentes de impacto.",
-      "Establecer registros sistemáticos de consumos y generación de residuos.",
-      "Capacitar a equipos clave en buenas prácticas ambientales y cumplimiento normativo.",
-    ],
-    Bajo: [
-      "Identificar brechas críticas de cumplimiento y riesgos operacionales asociados al medio ambiente.",
-      "Elaborar un plan inicial de registro y gestión para carbono, agua y residuos.",
-      "Aplicar medidas simples de eficiencia de bajo costo como primer paso estructurado.",
-    ],
-  };
+// ===========================================================
+// RECOMENDACIONES POR NIVEL (debe ir ANTES de usar recs)
+// ===========================================================
+const recomendacionesPorNivel = {
+  Avanzado: [
+    "Mantener auditorías periódicas y métricas avanzadas por categoría ambiental.",
+    "Explorar proyectos de innovación en economía circular y eficiencia energética.",
+    "Evaluar certificaciones ambientales (por ejemplo, ISO 14001) como siguiente paso.",
+  ],
+  Intermedio: [
+    "Formalizar metas anuales de reducción para carbono, agua y residuos.",
+    "Reforzar la trazabilidad de datos mediante registros mensuales y responsables definidos.",
+    "Implementar mejoras en eficiencia energética e hídrica con indicadores de seguimiento.",
+  ],
+  Básico: [
+    "Completar un diagnóstico más detallado de línea base para las principales fuentes de impacto.",
+    "Establecer registros sistemáticos de consumos y generación de residuos.",
+    "Capacitar a equipos clave en buenas prácticas ambientales y cumplimiento normativo.",
+  ],
+  Bajo: [
+    "Identificar brechas críticas de cumplimiento y riesgos operacionales asociados al medio ambiente.",
+    "Elaborar un plan inicial de registro y gestión para carbono, agua y residuos.",
+    "Aplicar medidas simples de eficiencia de bajo costo como primer paso estructurado.",
+  ],
+};
 
-  const recs = recomendacionesPorNivel[evaluacion.nivel] || [];
+const recs = recomendacionesPorNivel[evaluacion.nivel] || [];
 
-  // ---------------- Recuadro ----------------
-  const recsBlock = document.createElement("div");
-  recsBlock.style.marginTop = "4px";
+// ---------------- Recuadro ----------------
+const recsBlock = document.createElement("div");
+recsBlock.style.marginTop = "4px";
 
-  recsBlock.innerHTML = `
+recsBlock.innerHTML = `
   <h3 style="font-size:13px; font-weight:bold; margin-bottom:4px;">
     Recomendaciones según el nivel obtenido
   </h3>
@@ -698,41 +698,41 @@ export default async function generarPDF(evaluacion) {
   </ul>
 `;
 
-  analisisWrapper.appendChild(recsBlock);
+analisisWrapper.appendChild(recsBlock);
 
-  // ===========================================================
-  // 6.2 HUELLA DE CARBONO (Impacto Real)
-  // ===========================================================
-  const secCarbono = document.createElement("div");
-  secCarbono.style.marginTop = "16px";
+// ===========================================================
+// 6.2 HUELLA DE CARBONO (Impacto Real)
+// ===========================================================
+const secCarbono = document.createElement("div");
+secCarbono.style.marginTop = "16px";
 
-  const esA1Mayor = a1Ton > a2Ton;
-  const esA2Mayor = a2Ton > a1Ton;
+const esA1Mayor = a1Ton > a2Ton;
+const esA2Mayor = a2Ton > a1Ton;
 
-  let analisisCarbono = "";
+let analisisCarbono = "";
 
-  if (esA1Mayor) {
-    analisisCarbono = `
+if (esA1Mayor) {
+  analisisCarbono = `
     Las emisiones directas por combustibles (A1) representan la mayor proporción
     de la huella total. Esto puede deberse al uso intensivo de calderas, flota,
     maquinaria o procesos térmicos. Se recomienda evaluar eficiencia operativa,
     mantenimiento y alternativas energéticas.
   `;
-  } else if (esA2Mayor) {
-    analisisCarbono = `
+} else if (esA2Mayor) {
+  analisisCarbono = `
     La mayor parte de las emisiones proviene del consumo eléctrico (A2). 
     Esto sugiere una dependencia importante de sistemas eléctricos,
     recomendándose eficiencia, recambio tecnológico y energías renovables.
   `;
-  } else {
-    analisisCarbono = `
+} else {
+  analisisCarbono = `
     Las emisiones están equilibradas entre A1 y A2, indicando que ambas fuentes
     contribuyen proporcionalmente. Esto permite aplicar medidas de reducción
     simultáneas.
   `;
-  }
+}
 
-  secCarbono.innerHTML = `
+secCarbono.innerHTML = `
   <h2 style="font-size:14px; font-weight:bold; margin-bottom:6px;">
     2. Huella de Carbono (Impacto Real)
   </h2>
@@ -749,18 +749,61 @@ export default async function generarPDF(evaluacion) {
   </p>
 `;
 
-  analisisWrapper.appendChild(secCarbono);
+analisisWrapper.appendChild(secCarbono);
+// ===========================================================
+// 6.3 CONSUMO E INTENSIDAD HÍDRICA (Uso del Recurso Agua)
+// ===========================================================
+const secAgua = document.createElement("div");
+secAgua.style.marginTop = "16px";
 
-  // ===========================================================
-  // 6.3 LEY REP (Cumplimiento Normativo)
-  // ===========================================================
-  const secRep = document.createElement("div");
-  secRep.style.marginTop = "16px";
+const consumo = Number(evaluacion?.waterData?.consumoMensual ?? 0);
+const intensidadTipo = evaluacion?.waterData?.intensidadTipo || "";
+const intensidadValor = Number(evaluacion?.waterData?.intensidadValor ?? 0);
 
-  let textoRep = "";
+let textoAgua = `
+  El consumo hídrico declarado corresponde a 
+  <strong>${consumo.toLocaleString("es-CL")} litros/mes</strong>.
+`;
 
-  if (repRegistros.length > 0) {
-    textoRep = `
+if (intensidadTipo && intensidadValor) {
+  textoAgua += `
+    Además, la empresa reportó una <strong>intensidad hídrica</strong> de 
+    <strong>${intensidadValor.toLocaleString("es-CL")}</strong> 
+    litros por <strong>${intensidadTipo === "Consumo por unidad de producción"
+      ? "unidad producida"
+      : "persona por día"}</strong>.
+    Esto permite evaluar la eficiencia del consumo en relación a su operación.
+  `;
+} else {
+  textoAgua += `
+    No se ingresó información de intensidad hídrica. Se recomienda incorporar 
+    este indicador, ya que permite comparar productividad hídrica entre períodos 
+    y detectar oportunidades de eficiencia.
+  `;
+}
+
+secAgua.innerHTML = `
+  <h2 style="font-size:14px; font-weight:bold; margin-bottom:6px;">
+    3. Consumo e Intensidad Hídrica (Uso del Recurso Agua)
+  </h2>
+
+  <p style="font-size:10px; margin:0 0 6px 0; line-height:1.45; color:#444;">
+    ${textoAgua}
+  </p>
+`;
+
+analisisWrapper.appendChild(secAgua);
+
+// ===========================================================
+// 6.4 LEY REP (Cumplimiento Normativo)
+// ===========================================================
+const secRep = document.createElement("div");
+secRep.style.marginTop = "16px";
+
+let textoRep = "";
+
+if (repRegistros.length > 0) {
+  textoRep = `
     El gráfico compara los residuos totales declarados con los productos prioritarios
     reportados al sistema REP en el último año disponible. Esto permite identificar
     brechas de valorización o posibles sub-declaraciones.
@@ -771,17 +814,17 @@ export default async function generarPDF(evaluacion) {
     fortalecer la segregación en origen, la trazabilidad y la relación con gestores 
     autorizados.
   `;
-  } else {
-    textoRep = `
+} else {
+  textoRep = `
     No se encontraron registros REP asociados a esta empresa. Se recomienda verificar 
     si aplica la obligación de declarar productos prioritarios y asegurar la inscripción
     en el sistema para evitar incumplimientos.
   `;
-  }
+}
 
-  secRep.innerHTML = `
+secRep.innerHTML = `
   <h2 style="font-size:14px; font-weight:bold; margin-bottom:6px;">
-    3. Gestión de Residuos – Ley REP
+    4. Gestión de Residuos – Ley REP
   </h2>
 
   <p style="font-size:10px; color:#444; margin:0 0 6px 0; line-height:1.45;">
@@ -789,20 +832,20 @@ export default async function generarPDF(evaluacion) {
   </p>
 `;
 
-  analisisWrapper.appendChild(secRep);
+analisisWrapper.appendChild(secRep);
 
-  // Agregar wrapper completo a la página 2
-  page2.appendChild(analisisWrapper);
+// Agregar wrapper completo a la página 2
+page2.appendChild(analisisWrapper);
 
-  // FOOTER PÁGINA 2
-  const footer2 = document.createElement("p");
-  footer2.style.marginTop = "18px";
-  footer2.style.textAlign = "center";
-  footer2.style.fontSize = "9px";
-  footer2.style.color = "#6B7280";
-  footer2.textContent =
-    "Página 2 de 2 — Diagnóstico generado con AmbientAPP — mellamowalter.cl (2025)";
-  page2.appendChild(footer2);
+// FOOTER PÁGINA 2
+const footer2 = document.createElement("p");
+footer2.style.marginTop = "18px";
+footer2.style.textAlign = "center";
+footer2.style.fontSize = "9px";
+footer2.style.color = "#6B7280";
+footer2.textContent =
+  "Página 2 de 2 — Diagnóstico generado con AmbientAPP — mellamowalter.cl (2025)";
+page2.appendChild(footer2);
 
 
 

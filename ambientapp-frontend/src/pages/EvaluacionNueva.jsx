@@ -34,9 +34,15 @@ export default function EvaluacionNueva() {
       bencina: "",
     },
     waterData: {
-      consumoMensual: "",
+      consumoMensual: 0,
       fuentePrincipal: "",
+      intensidadTipo: "",
+      intensidadValor: "",  // se calculará automáticamente
+      trabajadores: "",     // NUEVO
+      produccion: "",       // NUEVO
     },
+
+
     wasteData: {
       residuosTotales: "",
       residuosReciclados: "",
@@ -80,13 +86,35 @@ export default function EvaluacionNueva() {
     }
 
     // ------ Agua ------
-    if (campo === "consumoMensual") {
+    // --- Intensidad hídrica: selección ---
+    if (campo === "tipoIntensidad" && !valor) {
+      mensaje = "Seleccione un método de cálculo";
+    }
+
+    // --- Intensidad por unidad de producción ---
+    if (campo === "produccionAnual") {
       if (valor === "" || Number(valor) <= 0)
         mensaje = "Debe ser mayor a 0";
     }
 
-    if (campo === "fuentePrincipal" && !valor)
-      mensaje = "Seleccione fuente";
+    if (campo === "unidadProduccion" &&
+      formData.waterData.tipoIntensidad === "Por unidad de producción" &&
+      !valor.trim()) {
+      mensaje = "Indique la unidad (kg, unidades, litros...)";
+    }
+
+    // --- Intensidad por persona al día ---
+    if (campo === "trabajadores") {
+      if (valor === "" || Number(valor) <= 0)
+        mensaje = "Debe ser mayor a 0";
+    }
+
+    if (campo === "diasOperativos") {
+      if (valor === "" || Number(valor) <= 0)
+        mensaje = "Debe ser mayor a 0";
+      if (Number(valor) > 31)
+        mensaje = "No puede ser mayor a 31 días";
+    }
 
     // ------ Residuos ------
     if (campo === "residuosTotales") {
@@ -160,15 +188,68 @@ export default function EvaluacionNueva() {
   const handleInput = (e, categoria = null) => {
     const { name, value } = e.target;
 
-    if (categoria) {
-      setFormData((prev) => ({
-        ...prev,
-        [categoria]: { ...prev[categoria], [name]: value },
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => {
+      // ------------------------------
+      // 1. Actualizar normalmente
+      // ------------------------------
+      let updated = categoria
+        ? {
+          ...prev,
+          [categoria]: {
+            ...prev[categoria],
+            [name]: value,
+          },
+        }
+        : {
+          ...prev,
+          [name]: value,
+        };
 
+      // --------------------------------------------------
+      // 2. CÁLCULO AUTOMÁTICO DE INTENSIDAD HÍDRICA
+      // --------------------------------------------------
+      const agua = updated.waterData;
+
+      // Si cambiamos algo relacionado al agua, recalculamos
+      if (
+        categoria === "waterData" ||
+        name === "consumoMensual" ||
+        name === "trabajadores" ||
+        name === "produccion"
+      ) {
+        const consumo = Number(agua.consumoMensual || 0);
+
+        // 🔹 Modo 1: Consumo por persona
+        if (agua.intensidadTipo === "Consumo por persona") {
+          const trabajadores = Number(agua.trabajadores || 0);
+
+          if (consumo > 0 && trabajadores > 0) {
+            updated.waterData.intensidadValor = Number(
+              consumo / (trabajadores * 30) // consumo diario por persona
+            ).toFixed(2);
+          } else {
+            updated.waterData.intensidadValor = "";
+          }
+        }
+
+        // 🔹 Modo 2: Consumo por unidad de producción
+        if (agua.intensidadTipo === "Consumo por unidad de producción") {
+          const produccion = Number(agua.produccion || 0);
+
+          if (consumo > 0 && produccion > 0) {
+            updated.waterData.intensidadValor = Number(
+              consumo / produccion
+            ).toFixed(2);
+          } else {
+            updated.waterData.intensidadValor = "";
+          }
+        }
+      }
+
+      return updated;
+    });
+
+    // Mantiene tu validación original
     validarCampo(name, value);
   };
 
@@ -304,6 +385,33 @@ export default function EvaluacionNueva() {
       err.consumoMensual = "Valor excesivo. Máximo permitido: 1.000.000.000 kg)";
 
     if (!w.fuentePrincipal) err.fuentePrincipal = "Seleccione fuente";
+
+    if (formData.waterData.tipoIntensidad === "Por unidad de producción") {
+      if (!formData.waterData.produccionAnual ||
+        Number(formData.waterData.produccionAnual) <= 0) {
+        err.produccionAnual = "Debe ser mayor a 0";
+      }
+
+      if (!formData.waterData.unidadProduccion.trim()) {
+        err.unidadProduccion = "Indique la unidad";
+      }
+    }
+
+    if (formData.waterData.tipoIntensidad === "Por persona al día") {
+      if (!formData.waterData.trabajadores ||
+        Number(formData.waterData.trabajadores) <= 0) {
+        err.trabajadores = "Debe ser mayor a 0";
+      }
+
+      if (!formData.waterData.diasOperativos ||
+        Number(formData.waterData.diasOperativos) <= 0) {
+        err.diasOperativos = "Debe ser mayor a 0";
+      }
+
+      if (Number(formData.waterData.diasOperativos) > 31) {
+        err.diasOperativos = "No puede ser mayor a 31 días";
+      }
+    }
 
     // --- Residuos generales ---
     const r = formData.wasteData;
@@ -547,11 +655,10 @@ export default function EvaluacionNueva() {
           <PasoTitulo titulo="3. Consumo de Agua" />
 
           <Input
-            label="Consumo Mensual (litros/mes)"
+            label="Consumo Mensual (litros)"
             name="consumoMensual"
             type="number"
             value={formData.waterData.consumoMensual}
-            error={errores.consumoMensual}
             onChange={(e) => handleInput(e, "waterData")}
           />
 
@@ -559,7 +666,6 @@ export default function EvaluacionNueva() {
             label="Fuente Principal"
             name="fuentePrincipal"
             value={formData.waterData.fuentePrincipal}
-            error={errores.fuentePrincipal}
             onChange={(e) => handleInput(e, "waterData")}
             options={[
               "Red pública",
@@ -569,6 +675,51 @@ export default function EvaluacionNueva() {
               "Mixta",
             ]}
           />
+
+          <Select
+            label="Tipo de Intensidad Hídrica"
+            name="intensidadTipo"
+            value={formData.waterData.intensidadTipo}
+            onChange={(e) => handleInput(e, "waterData")}
+            options={[
+              "Consumo por unidad de producción",
+              "Consumo por persona",
+            ]}
+          />
+
+          {/* ==== OPCIÓN 1 → Consumo por persona ==== */}
+          {formData.waterData.intensidadTipo === "Consumo por persona" && (
+            <Input
+              label="Número de trabajadores"
+              name="trabajadores"
+              type="number"
+              value={formData.waterData.trabajadores}
+              onChange={(e) => handleInput(e, "waterData")}
+              placeholder="Ej: 20"
+            />
+          )}
+
+          {/* ==== OPCIÓN 2 → Consumo por unidad de producción ==== */}
+          {formData.waterData.intensidadTipo === "Consumo por unidad de producción" && (
+            <Input
+              label="Producción mensual (unidades)"
+              name="produccion"
+              type="number"
+              value={formData.waterData.produccion}
+              onChange={(e) => handleInput(e, "waterData")}
+              placeholder="Ej: 500"
+            />
+          )}
+
+          {/* Intensidad calculada automáticamente */}
+          <Input
+            label="Intensidad Hídrica Calculada"
+            name="intensidadValor"
+            type="number"
+            value={formData.waterData.intensidadValor}
+            disabled={true}
+          />
+
         </PasoContainer>
 
         {/* ---------------- PASO 4 ---------------- */}
