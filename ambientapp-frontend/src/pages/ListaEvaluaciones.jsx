@@ -159,7 +159,7 @@ export default function ListaEvaluaciones() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="animate-spin h-10 w-10 border-b-2 border-green-500 rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando evaluaciones...</p>
+          <p className="text-gray-600">Cargando diagnósticos...</p>
         </div>
       </div>
     );
@@ -173,9 +173,9 @@ export default function ListaEvaluaciones() {
       {/* Título */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-slate-800">
-          Evaluaciones Registradas
+          Diagnósticos Registrados
         </h1>
-        <p className="text-gray-600">Gestión de evaluaciones ambientales</p>
+        <p className="text-gray-600">Gestión de diagnósticos ambientales</p>
       </div>
 
       {/* Filtros */}
@@ -236,7 +236,7 @@ export default function ListaEvaluaciones() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-6 text-center text-gray-500">
-                  No hay evaluaciones que coincidan con los filtros.
+                  No hay diagnósticos que coincidan con los filtros.
                 </td>
               </tr>
             )}

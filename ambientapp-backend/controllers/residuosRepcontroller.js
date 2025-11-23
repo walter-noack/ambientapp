@@ -11,7 +11,7 @@ exports.crearResiduoRep = async (req, res) => {
     } = req.body;
 
     // 🟢 empresaId SIEMPRE desde el token normalizado
-    const empresaId = req.user?.empresaId;
+    const empresaId = req.body.empresaId || req.user?.empresaId;
 
     console.log("🟦 RECIBIDO POR BACKEND REP:", {
       empresaId,

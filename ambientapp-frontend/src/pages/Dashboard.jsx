@@ -28,7 +28,16 @@ export default function Dashboard() {
     async function load() {
       try {
         const data = await getEvaluaciones();
-        setEvaluaciones(data);
+
+        // Ordenar por fecha descendente
+        const ordenadas = [...data].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        // Tomar solo las últimas 10
+        const ultimas10 = ordenadas.slice(0, 10);
+
+        setEvaluaciones(ultimas10);
 
         const total = data.length;
 
@@ -210,7 +219,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
         <div className="p-4 bg-white border rounded-xl shadow-sm">
-          <p className="text-xs text-slate-500">Evaluaciones realizadas</p>
+          <p className="text-xs text-slate-500">Total Diagnósticos realizados</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{kpis.total}</p>
         </div>
 
@@ -229,7 +238,7 @@ export default function Dashboard() {
         </div>
 
         <div className="p-4 bg-white border rounded-xl shadow-sm">
-          <p className="text-xs text-slate-500">Última evaluación</p>
+          <p className="text-xs text-slate-500">Fecha Último Diagnóstico</p>
           <p className="text-lg font-semibold text-slate-900 mt-1">
             {kpis.ultimaFecha}
           </p>
@@ -338,14 +347,14 @@ export default function Dashboard() {
       {/* BOTÓN NUEVA EVALUACIÓN */}
       <div className="flex justify-end mt-4">
         <Link to="/evaluaciones/nueva" className="btn-primary px-4 py-2 rounded-lg">
-          + Nueva Evaluación
+          + Nuevo Diagnóstico
         </Link>
       </div>
 
       {/* TABLA EVALUACIONES */}
       <div className="bg-white rounded-xl border shadow-sm p-4">
         <h2 className="text-lg font-semibold mb-3 text-slate-800">
-          Evaluaciones registradas
+          Últimos 10 Diagnósticos
         </h2>
 
         <div className="overflow-x-auto">

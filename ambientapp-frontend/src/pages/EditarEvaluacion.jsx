@@ -461,13 +461,19 @@ export default function EditarEvaluacion() {
                   placeholder="Ej: 25"
                 />
 
-                <Input
-                  label="Intensidad hídrica calculada (L/persona·día)"
-                  name="intensidadValor"
-                  type="number"
-                  value={formData.waterData.intensidadValor || ""}
-                  disabled={true}
-                />
+                {/* Mostrar intensidad calculada automáticamente */}
+                {formData.waterData.intensidadValor && (
+                  <p className="text-sm text-blue-700 font-medium mt-1">
+                    Intensidad hídrica calculada:{" "}
+                    <strong>
+                      {formData.waterData.intensidadValor}{" "}
+                      {formData.waterData.intensidadTipo === "Consumo por unidad de producción"
+                        ? "L/unidad"
+                        : "L/persona·día"}
+                    </strong>
+                  </p>
+                )}
+
               </>
             )}
 
@@ -484,13 +490,6 @@ export default function EditarEvaluacion() {
                   placeholder="Ej: 1200"
                 />
 
-                <Input
-                  label="Intensidad hídrica calculada (L/unidad)"
-                  name="intensidadValor"
-                  type="number"
-                  value={formData.waterData.intensidadValor || ""}
-                  disabled={true}
-                />
               </>
             )}
           </PasoContainer>

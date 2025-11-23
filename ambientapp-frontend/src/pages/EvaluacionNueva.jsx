@@ -72,9 +72,9 @@ export default function EvaluacionNueva() {
       mensaje = "Indique rubro";
 
     if (campo === "period") {
-      const regexPeriodo = /^(1er|2do)\sSemestre\s20\d{2}$/;
+      const regexPeriodo = /^20\d{2}-(S1|S2)$/;
       if (!regexPeriodo.test(valor))
-        mensaje = "Formato válido: 1er Semestre 2024";
+        mensaje = "Formato válido: 2024-S1 o 2024-S2";
     }
 
     // ------ Carbono ------
@@ -505,7 +505,7 @@ export default function EvaluacionNueva() {
 
       for (const rep of repList) {
         await saveResiduosRep({
-          // empresaId lo toma el backend desde el token (req.user.empresaId)
+          empresaId: evaluacionCompleta.empresaId,
           producto: rep.producto,
           subcategoria: rep.subcategoria,
           anio: rep.anio,
@@ -702,7 +702,7 @@ export default function EvaluacionNueva() {
           {/* ==== OPCIÓN 2 → Consumo por unidad de producción ==== */}
           {formData.waterData.intensidadTipo === "Consumo por unidad de producción" && (
             <Input
-              label="Producción mensual (unidades)"
+              label="Producción mensual (unidades/mes)"
               name="produccion"
               type="number"
               value={formData.waterData.produccion}
@@ -711,14 +711,18 @@ export default function EvaluacionNueva() {
             />
           )}
 
-          {/* Intensidad calculada automáticamente */}
-          <Input
-            label="Intensidad Hídrica Calculada"
-            name="intensidadValor"
-            type="number"
-            value={formData.waterData.intensidadValor}
-            disabled={true}
-          />
+          {formData.waterData.intensidadValor && (
+            <p className="text-sm text-blue-700 font-medium mt-1">
+              Intensidad hídrica calculada:{" "}
+              <strong>
+                {formData.waterData.intensidadValor}{" "}
+                {formData.waterData.intensidadTipo === "Consumo por unidad de producción"
+                  ? "L/unidad"
+                  : "L/persona·día"}
+              </strong>
+            </p>
+          )}
+
 
         </PasoContainer>
 

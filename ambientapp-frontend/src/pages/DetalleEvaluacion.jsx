@@ -172,6 +172,8 @@ export default function DetalleEvaluacion() {
   // 📌 Cargar evaluación + registros REP
   // ---------------------------------------------------------------------------
   useEffect(() => {
+    console.log("=====REP REGISTROS=====");
+    console.table(residuosRep);
     async function load() {
       try {
         const data = await getEvaluacionById(id);
@@ -193,7 +195,7 @@ export default function DetalleEvaluacion() {
     }
 
     load();
-  }, [id]);
+  }, [id], [residuosRep]);
 
   // ---------------------------------------------------------------------------
   // 📊 Donut Huella de Carbono (A1 y A2)
@@ -518,42 +520,42 @@ export default function DetalleEvaluacion() {
           <IndicadoresAmbientales emisiones={emisionesVista} evaluacion={ev} />
         </section>
 
-        {/* =====================  INTENSIDAD HÍDRICA  ===================== */}
-        {evaluacion.waterData?.intensidadValor > 0 && (
-          <section className="border border-slate-100 rounded-xl px-4 py-4 bg-slate-50/60">
-            <h3 className="text-sm font-semibold text-slate-900 mb-1.5">
-              Intensidad hídrica
-            </h3>
+     {/* =====================  INTENSIDAD HÍDRICA  ===================== */}
+{evaluacion.waterData?.intensidadValor > 0 && (
+  <section className="border border-slate-100 rounded-xl px-4 py-4 bg-slate-50/60">
+    <h3 className="text-sm font-semibold text-slate-900 mb-1.5">
+      Intensidad hídrica
+    </h3>
 
-            <p className="text-xs text-slate-600 leading-relaxed mb-2">
-              La intensidad hídrica permite entender el consumo relativo de agua según la
-              actividad de la empresa.
-            </p>
+    <p className="text-xs text-slate-600 leading-relaxed mb-2">
+      La intensidad hídrica permite entender el consumo relativo de agua según la
+      actividad de la empresa.
+    </p>
 
-            <div className="text-sm">
-              <p className="text-slate-700">
-                <strong>Tipo:</strong> {evaluacion.waterData.intensidadTipo}
-              </p>
+    <div className="text-sm">
+      <p className="text-slate-700">
+        <strong>Tipo:</strong> {evaluacion.waterData.intensidadTipo}
+      </p>
 
-              <p className="text-slate-700 mt-1">
-                <strong>Valor:</strong>{" "}
-                {Number(evaluacion.waterData.intensidadValor).toFixed(1)}{" "}
-                {evaluacion.waterData.intensidadTipo ===
-                  "Consumo por unidad de producción"
-                  ? "L/unidad"
-                  : "L/persona·día"}
-              </p>
+      <p className="text-slate-700 mt-1">
+        <strong>Valor:</strong>{" "}
+        {Number(evaluacion.waterData.intensidadValor).toFixed(1)}{" "}
+        {evaluacion.waterData.intensidadTipo ===
+        "Consumo por unidad de producción"
+          ? "L/unidad"
+          : "L/persona·día"}
+      </p>
 
-              <p className="mt-2 font-medium text-slate-800">
-                {evaluacion.waterData.intensidadValor <= 15
-                  ? "Baja intensidad hídrica: consumo eficiente."
-                  : evaluacion.waterData.intensidadValor <= 30
-                    ? "Intensidad moderada."
-                    : "Alta intensidad hídrica: se recomienda revisar procesos."}
-              </p>
-            </div>
-          </section>
-        )}
+      <p className="mt-2 font-medium text-slate-800">
+        {evaluacion.waterData.intensidadValor <= 15
+          ? "Baja intensidad hídrica: consumo eficiente."
+          : evaluacion.waterData.intensidadValor <= 30
+          ? "Intensidad moderada."
+          : "Alta intensidad hídrica: se recomienda revisar procesos."}
+      </p>
+    </div>
+  </section>
+)}
 
 
         {/* ========================= HUELLA DE CARBONO ========================= */}
