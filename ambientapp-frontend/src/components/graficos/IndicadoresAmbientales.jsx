@@ -51,6 +51,24 @@ export default function IndicadoresAmbientales({ emisiones, evaluacion }) {
           ? "La valorización de residuos puede mejorar. Revisa separación y alianzas con gestores."
           : "Buena gestión de residuos.",
     },
+
+    {
+      titulo: "Intensidad Hídrica",
+      valor: evaluacion.waterData?.intensidadValor
+        ? `${Number(evaluacion.waterData.intensidadValor).toFixed(1)} ${evaluacion.waterData.intensidadTipo === "Consumo por unidad de producción"
+          ? "L/unidad"
+          : "L/persona·día"
+        }`
+        : "Sin datos",
+      color: "#06b6d4",
+      detalle: !evaluacion.waterData?.intensidadValor
+        ? "No se entregó información de intensidad hídrica."
+        : evaluacion.waterData.intensidadValor <= 15
+          ? "Baja intensidad hídrica: buen desempeño."
+          : evaluacion.waterData.intensidadValor <= 30
+            ? "Intensidad hídrica moderada."
+            : "Alta intensidad hídrica: revisar procesos de consumo y eficiencia.",
+    },
   ];
 
   return (

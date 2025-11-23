@@ -57,15 +57,45 @@ export default function Dashboard() {
             ? data.reduce((acc, e) => acc + (e.scores?.carbonScore || 0), 0) / total
             : 0;
 
+        // Promedios Agua
         const promAgua =
           total > 0
             ? data.reduce((acc, e) => acc + (e.scores?.waterScore || 0), 0) / total
             : 0;
 
+
         const promResiduos =
           total > 0
             ? data.reduce((acc, e) => acc + (e.scores?.wasteScore || 0), 0) / total
             : 0;
+
+        // ---- KPI: Intensidad Hídrica Promedio ----
+        let intensidades = [];
+        let tiposIntensidad = [];
+
+        data.forEach(ev => {
+          const tipo = ev.waterData?.intensidadTipo;
+          const valor = Number(ev.waterData?.intensidadValor);
+
+          if (tipo && valor > 0) {
+            intensidades.push(valor);
+            tiposIntensidad.push(tipo);
+          }
+        });
+
+        const promIntensidad =
+          intensidades.length > 0
+            ? intensidades.reduce((a, b) => a + b, 0) / intensidades.length
+            : 0;
+
+        // Tipo más frecuente
+        const tipoFrecuente =
+          tiposIntensidad.length > 0
+            ? tiposIntensidad.sort((a, b) =>
+              tiposIntensidad.filter(v => v === a).length -
+              tiposIntensidad.filter(v => v === b).length
+            ).pop()
+            : "—";
 
         setKpis({
           total,
@@ -74,6 +104,8 @@ export default function Dashboard() {
           ultimaFecha,
           promCarbono,
           promAgua,
+          promIntensidad,
+          tipoIntensidad: tipoFrecuente,
           promResiduos,
         });
       } catch (error) {
@@ -238,6 +270,36 @@ export default function Dashboard() {
               {kpis.promAgua >= 60
                 ? "Consumo hídrico adecuado."
                 : "Consumo alto: revisar eficiencia hídrica."}
+            </p>
+          </Link>
+
+
+
+          <Link
+            to="/evaluaciones?filtro=intensidad"
+            className="block p-5 bg-white border rounded-xl shadow-sm hover:shadow-md transition"
+          >
+            <h3 className="text-sm font-semibold text-slate-900">
+              Intensidad Hídrica Promedio
+            </h3>
+
+            <p className="text-3xl font-bold mt-1 text-cyan-600">
+              {kpis.promIntensidad.toFixed(1)}{" "}
+              <span className="text-base text-slate-500">
+                {kpis.tipoIntensidad === "Consumo por unidad de producción"
+                  ? "L/unidad"
+                  : kpis.tipoIntensidad === "Consumo por persona"
+                    ? "L/persona·día"
+                    : ""}
+              </span>
+            </p>
+
+            <p className="text-xs text-slate-600 mt-2">
+              {kpis.promIntensidad <= 15
+                ? "Consumo hídrico eficiente."
+                : kpis.promIntensidad <= 30
+                  ? "Intensidad moderada."
+                  : "Intensidad alta: revisar procesos."}
             </p>
           </Link>
 

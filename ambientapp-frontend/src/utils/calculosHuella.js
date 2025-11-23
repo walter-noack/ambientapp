@@ -71,16 +71,45 @@ export function calcularEmisionesCarbono(carbonData) {
 
 
 // ============================================================
-// 🔵 2. Score Agua
+// 🔵 2. Score Agua (Ahora incluye Intensidad Hídrica)
 // ============================================================
 export function calcularScoreAgua(waterData) {
-  const { consumoMensual = 0 } = waterData;
+  const {
+    consumoMensual = 0,
+    intensidadTipo = "",
+    intensidadValor = "",
+  } = waterData;
 
-  let waterScore = 90;
-  if (consumoMensual > 30000) waterScore = 20;
-  else if (consumoMensual >= 10000) waterScore = 60;
+  let scoreConsumo = 90;
+  let scoreIntensidad = 90;
 
-  return waterScore;
+  // --- SCORE POR CONSUMO MENSUAL ---
+  if (consumoMensual > 30000) scoreConsumo = 20;
+  else if (consumoMensual >= 10000) scoreConsumo = 60;
+
+  // --- SCORE POR INTENSIDAD HÍDRICA ---
+  if (intensidadTipo && intensidadValor) {
+    const val = Number(intensidadValor);
+
+    if (intensidadTipo === "Consumo por unidad de producción") {
+      if (val > 50) scoreIntensidad = 20;
+      else if (val > 20) scoreIntensidad = 60;
+    }
+
+    if (intensidadTipo === "Consumo por persona") {
+      if (val > 80) scoreIntensidad = 20;
+      else if (val > 40) scoreIntensidad = 60;
+    }
+  }
+
+  // --- COMBINACIÓN FINAL ---
+  // Si hay intensidad → 50% consumo + 50% intensidad
+  // Si no hay intensidad → solo consumo
+  const waterScore = intensidadTipo
+    ? (scoreConsumo * 0.5 + scoreIntensidad * 0.5)
+    : scoreConsumo;
+
+  return Math.round(waterScore);
 }
 
 
@@ -153,7 +182,36 @@ export function calcularEvaluacionReal(formData) {
     waterScore,
     wasteScore: residuos.wasteScore,
   };
+  // ------------------------------------------------------
+  // 🔵 CÁLCULO DE INTENSIDAD HÍDRICA
+  // ------------------------------------------------------
+  let intensidadHidricaValor = null;
+  let intensidadHidricaUnidad = "";
 
+  const agua = waterData;
+  const consumoAnual = Number(agua.consumoMensual || 0) * 12;
+
+  // A) Intensidad por unidad de producción
+  if (agua.tipoIntensidad === "Por unidad de producción") {
+    const produccion = Number(agua.produccionAnual || 0);
+
+    if (produccion > 0) {
+      intensidadHidricaValor = consumoAnual / produccion;
+      intensidadHidricaUnidad = `L/${agua.unidadProduccion || "unidad"}`;
+    }
+  }
+
+  // B) Intensidad por persona al día
+  if (agua.tipoIntensidad === "Por persona al día") {
+    const personas = Number(agua.trabajadores || 0);
+    const dias = Number(agua.diasOperativos || 0);
+
+    if (personas > 0 && dias > 0) {
+      intensidadHidricaValor =
+        Number(agua.consumoMensual || 0) / (personas * dias);
+      intensidadHidricaUnidad = "L/persona·día";
+    }
+  }
   const nivelFinal = calcularScoreFinal(scores);
 
   return {
@@ -164,5 +222,10 @@ export function calcularEvaluacionReal(formData) {
     scores,
     finalScore: nivelFinal.finalScore,
     nivel: nivelFinal.nivel,
+
+    intensidadHidrica: {
+      valor: intensidadHidricaValor,
+      unidad: intensidadHidricaUnidad,
+    }
   };
 }
