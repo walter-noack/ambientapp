@@ -28,7 +28,6 @@ app.use("/rep", residuosRepRoutes);   // ← NUEVA RUTA REP
 app.get("/", (req, res) => {
   res.json({ message: "Backend AmbientAPP funcionando" });
 });
-app.use("/rep", residuosRepRoutes);
 
 
 const PORT = process.env.PORT || 4000;
