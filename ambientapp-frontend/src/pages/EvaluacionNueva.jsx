@@ -13,6 +13,22 @@ import Select from "../components/form/Select";
 import { calcularEvaluacionReal } from "../utils/calculosHuella";
 import { generarRecomendaciones } from "../utils/recomendaciones";
 
+// 🔵 Convierte un período en un año usable por REP
+function periodoToYear(periodo = "") {
+  if (!periodo) return "";
+
+  // Año completo (Ej: "Año 2025", "2025")
+  const matchYear = periodo.match(/20\d{2}/);
+  if (matchYear) return Number(matchYear[0]);
+
+  // Semestres comunes (Ej: "1er Semestre 2024", "2do Semestre 2023")
+  const matchSem = periodo.match(/(1er|2do)\s+Semestre\s+(20\d{2})/i);
+  if (matchSem) return Number(matchSem[2]);
+
+  return "";
+}
+
+
 export default function EvaluacionNueva() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -72,9 +88,11 @@ export default function EvaluacionNueva() {
       mensaje = "Indique rubro";
 
     if (campo === "period") {
-      const regexPeriodo = /^20\d{2}-(S1|S2)$/;
-      if (!regexPeriodo.test(valor))
-        mensaje = "Formato válido: 2024-S1 o 2024-S2";
+      const periodRegex = /(20\d{2})|(1er Semestre 20\d{2})|(2do Semestre 20\d{2})/;
+
+      if (!periodRegex.test(formData.period)) {
+        err.period = "Formato válido: '1er Semestre 2024', 'Año 2025', '2024'";
+      }
     }
 
     // ------ Carbono ------
@@ -246,12 +264,23 @@ export default function EvaluacionNueva() {
         }
       }
 
+
+      // ----------------------------
+      // 🔵 AUTO-DETECCIÓN DEL AÑO REP
+      // ----------------------------
+      if (name === "period") {
+        const year = periodoToYear(value);
+        updated.repYear = year; // se usa en el input REP
+      }
+
       return updated;
     });
 
     // Mantiene tu validación original
     validarCampo(name, value);
   };
+
+
 
   // ------------------ AGREGAR PRODUCTO REP ----------------------
   const agregarProductoRep = () => {
@@ -266,7 +295,6 @@ export default function EvaluacionNueva() {
     // Validación local de los campos REP antes de agregar
     validarCampo("rep_producto_temp", producto);
     validarCampo("rep_subcategoria_temp", subcategoria);
-    validarCampo("rep_anio_temp", anio);
     validarCampo("rep_cantidadGenerada_temp", cantidadGenerada);
     validarCampo("rep_cantidadValorizada_temp", cantidadValorizada, {
       cantidadGenerada,
@@ -283,7 +311,7 @@ export default function EvaluacionNueva() {
     if (
       !producto ||
       !subcategoria ||
-      !anio ||
+      !formData.repYear ||
       !cantidadGenerada ||
       hayErrorLocal
     ) {
@@ -305,7 +333,7 @@ export default function EvaluacionNueva() {
           {
             producto,
             subcategoria,
-            anio: Number(anio),
+            anio: formData.repYear,
             cantidadGenerada: Number(cantidadGenerada),
             cantidadValorizada: Number(cantidadValorizada),
             porcentajeValorizacion,
@@ -355,7 +383,7 @@ export default function EvaluacionNueva() {
     if (formData.sector === "Otro" && !formData.otroSector.trim())
       err.otroSector = "Indique rubro";
 
-    const regexPeriodo = /^(1er|2do)\sSemestre\s20\d{2}$/;
+    const regexPeriodo = /^20\d{2}-(S1|S2)$/;
     if (!regexPeriodo.test(formData.period))
       err.period = "Formato válido: 1er Semestre 2024";
 
@@ -508,7 +536,7 @@ export default function EvaluacionNueva() {
           empresaId: evaluacionCompleta.empresaId,
           producto: rep.producto,
           subcategoria: rep.subcategoria,
-          anio: rep.anio,
+          anio: rep.anio || formData.repYear,
           cantidadGenerada: rep.cantidadGenerada,
           cantidadValorizada: rep.cantidadValorizada,
         });
@@ -791,16 +819,11 @@ export default function EvaluacionNueva() {
               />
 
               <Input
-                label="Año"
-                type="number"
+                label="Año (automático según período)"
                 name="anio"
-                value={nuevoRep.anio}
-                error={errores.rep_anio_temp}
-                onChange={(e) => {
-                  const valor = e.target.value;
-                  setNuevoRep((prev) => ({ ...prev, anio: valor }));
-                  validarCampo("rep_anio_temp", valor);
-                }}
+                type="number"
+                disabled={true}
+                value={formData.repYear || ""}
               />
 
               {/* Cantidad Generada */}

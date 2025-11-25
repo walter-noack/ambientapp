@@ -7,6 +7,7 @@ import {
   updateEvaluacion,
   getResiduosRep,
   saveResiduosRep,
+  deleteResiduosRep,
 } from "../services/api";
 
 import { calcularEvaluacionReal } from "../utils/calculosHuella";
@@ -78,6 +79,14 @@ export default function EditarEvaluacion() {
           empresaId: data.empresaId,
         });
 
+        setFormData((prev) => ({
+          ...prev,
+          repYear: (() => {
+            const match = prev.period.match(/\b(20\d{2})\b/);
+            return match ? Number(match[1]) : "";
+          })(),
+        }));
+
         // Cargar registros REP desde backend
         if (data.empresaId) {
           const repResp = await getResiduosRep(data.empresaId);
@@ -99,8 +108,8 @@ export default function EditarEvaluacion() {
   const handleInput = (e, categoria = null) => {
     const { name, value } = e.target;
 
-    setFormData((prev) =>
-      categoria
+    setFormData((prev) => {
+      let updated = categoria
         ? {
           ...prev,
           [categoria]: {
@@ -111,9 +120,23 @@ export default function EditarEvaluacion() {
         : {
           ...prev,
           [name]: value,
-        }
-    );
+        };
+
+      // --------------------------------
+      // 🔵 DETECTAR AÑO REP AUTOMÁTICO
+      // --------------------------------
+      if (name === "period") {
+        const match = value.match(/\b(20\d{2})\b/);
+        const ano = match ? Number(match[1]) : "";
+
+        updated.repYear = ano;
+      }
+
+      return updated;
+    });
   };
+
+
 
   // ======================================================
   // ➕ AGREGAR PRODUCTO REP
@@ -127,7 +150,7 @@ export default function EditarEvaluacion() {
       cantidadValorizada,
     } = nuevoRep;
 
-    if (!producto || !anio || !cantidadGenerada) {
+    if (!producto || !cantidadGenerada) {
       alert("Completa los campos obligatorios del REP");
       return;
     }
@@ -142,7 +165,7 @@ export default function EditarEvaluacion() {
       {
         producto,
         subcategoria,
-        anio: Number(anio),
+        anio: formData.repYear,
         cantidadGenerada: Number(cantidadGenerada),
         cantidadValorizada: Number(cantidadValorizada),
         porcentajeValorizacion: porcentaje,
@@ -165,6 +188,8 @@ export default function EditarEvaluacion() {
   const eliminarProductoRep = (index) => {
     setRepList((prev) => prev.filter((_, i) => i !== index));
   };
+
+
   // ======================================================
   // 🟢 VALIDACIÓN (similar a EvaluacionNueva)
   // ======================================================
@@ -255,7 +280,10 @@ export default function EditarEvaluacion() {
       // Guardar evaluación
       await updateEvaluacion(id, evaluacionActualizada);
 
-      // Guardar REP actualizado (agrega registros nuevos/actuales)
+      // ELIMINAR TODOS LOS REP DE ESTA EMPRESA
+      await deleteResiduosRep(formData.empresaId);
+
+      // GUARDAR NUEVA LISTA REP
       for (const rep of repList) {
         await saveResiduosRep({
           empresaId: formData.empresaId,
@@ -267,6 +295,7 @@ export default function EditarEvaluacion() {
           porcentajeValorizacion: rep.porcentajeValorizacion,
         });
       }
+
 
       alert("Cambios guardados correctamente ✔️");
       navigate(`/detalle/${id}`);
@@ -556,16 +585,11 @@ export default function EditarEvaluacion() {
                 />
 
                 <Input
-                  label="Año"
+                  label="Año (automático según período)"
                   type="number"
                   name="anio"
-                  value={nuevoRep.anio}
-                  onChange={(e) =>
-                    setNuevoRep((prev) => ({
-                      ...prev,
-                      anio: e.target.value,
-                    }))
-                  }
+                  value={formData.repYear ?? ""}
+                  disabled={true}
                 />
 
                 <Input
