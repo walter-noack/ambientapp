@@ -1,18 +1,31 @@
 const express = require("express");
 const router = express.Router();
 const Evaluation = require("../models/Evaluation");
+const ResiduosRep = require("../models/ResiduosRep");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
 // ---------------------------------------------------
-// 📌 OBTENER UNA EVALUACIÓN SEGUN EL ROL
+// 📌 ELIMINAR TODOS LOS REP DE UNA EMPRESA
+// ---------------------------------------------------
+// ⚠️ IMPORTANTE: ESTA RUTA VA PRIMERO PARA EVITAR COLISIÓN CON "/:id"
+router.delete("/rep/:empresaId", async (req, res) => {
+  try {
+    await ResiduosRep.deleteMany({ empresaId: req.params.empresaId });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ---------------------------------------------------
+// 📌 OBTENER EVALUACIONES SEGÚN EL ROL
 // ---------------------------------------------------
 router.get("/", authMiddleware, async (req, res) => {
   try {
     let filtro = {};
 
-    // AdminSupremo → ve todas
     if (req.user.role !== "AdminSupremo") {
-      filtro.empresaId = req.user.empresaId; // EmpresaConsultora y Consultor
+      filtro.empresaId = req.user.empresaId;
     }
 
     const evals = await Evaluation.find(filtro).sort({ createdAt: -1 });

@@ -19,6 +19,9 @@ export default function Dashboard() {
     promCarbono: 0,
     promAgua: 0,
     promResiduos: 0,
+    promIntensidad: 0,
+    tipoIntensidad: "—",
+
   });
 
   // =========================================================
@@ -226,7 +229,7 @@ export default function Dashboard() {
         <div className="p-4 bg-white border rounded-xl shadow-sm">
           <p className="text-xs text-slate-500">Nivel promedio</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">
-            {kpis.nivelPromedio.toFixed(1)} / 100
+            {Number(kpis.nivelPromedio ?? 0).toFixed(1)} / 100
           </p>
         </div>
 
@@ -258,7 +261,7 @@ export default function Dashboard() {
           >
             <h3 className="text-sm font-semibold text-slate-900">Desempeño en Carbono</h3>
             <p className="text-3xl font-bold mt-1 text-green-600">
-              {kpis.promCarbono.toFixed(1)} / 100
+              {Number(kpis.promCarbono ?? 0).toFixed(1)} / 100
             </p>
             <p className="text-xs text-slate-600 mt-2">
               {kpis.promCarbono >= 60
@@ -273,7 +276,7 @@ export default function Dashboard() {
           >
             <h3 className="text-sm font-semibold text-slate-900">Desempeño en Agua</h3>
             <p className="text-3xl font-bold mt-1 text-blue-600">
-              {kpis.promAgua.toFixed(1)} / 100
+              {Number(kpis.promAgua ?? 0).toFixed(1)} / 100
             </p>
             <p className="text-xs text-slate-600 mt-2">
               {kpis.promAgua >= 60
@@ -293,7 +296,7 @@ export default function Dashboard() {
             </h3>
 
             <p className="text-3xl font-bold mt-1 text-cyan-600">
-              {kpis.promIntensidad.toFixed(1)}{" "}
+              {Number(kpis.promIntensidad ?? 0).toFixed(1)}{" "}
               <span className="text-base text-slate-500">
                 {kpis.tipoIntensidad === "Consumo por unidad de producción"
                   ? "L/unidad"
@@ -318,7 +321,7 @@ export default function Dashboard() {
           >
             <h3 className="text-sm font-semibold text-slate-900">Desempeño en Residuos</h3>
             <p className="text-3xl font-bold mt-1 text-purple-600">
-              {kpis.promResiduos.toFixed(1)} / 100
+              {Number(kpis.promResiduos ?? 0).toFixed(1)} / 100
             </p>
             <p className="text-xs text-slate-600 mt-2">
               {kpis.promResiduos >= 60

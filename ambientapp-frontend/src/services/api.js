@@ -8,6 +8,10 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// ======================================================
+// 📌 EVALUACIONES
+// ======================================================
+
 export const getEvaluaciones = () =>
   axios
     .get(`${API_URL}/evaluaciones`, { headers: authHeaders() })
@@ -33,21 +37,24 @@ export const deleteEvaluacion = (id) =>
     .delete(`${API_URL}/evaluaciones/${id}`, { headers: authHeaders() })
     .then((res) => res.data);
 
-// -----------------------------------------------------
+
+// ======================================================
 // 📦 LEY REP — Registro de residuos
-// -----------------------------------------------------
+// ======================================================
+
+// Crear registro REP
 export const saveResiduosRep = (data) =>
   axios
     .post(`${API_URL}/rep`, data, { headers: authHeaders() })
     .then((res) => res.data);
 
-// Traer todos los registros REP por empresa
+// Obtener todos los REP de una empresa
 export const getResiduosRep = (empresaId) =>
   axios
     .get(`${API_URL}/rep/empresa/${empresaId}`, { headers: authHeaders() })
     .then((res) => res.data);
 
-// Traer registros por producto prioritario (para gráficos)
+// Obtener registros REP por producto prioritario
 export const getResiduosRepByProducto = (empresaId, producto) =>
   axios
     .get(`${API_URL}/rep/empresa/${empresaId}/producto/${producto}`, {
@@ -55,3 +62,10 @@ export const getResiduosRepByProducto = (empresaId, producto) =>
     })
     .then((res) => res.data);
 
+// 🛠 CORREGIDO: eliminar REGISTROS REP de una empresa
+export const deleteResiduosRep = (empresaId) =>
+  axios
+    .delete(`${API_URL}/evaluaciones/rep/${empresaId}`, {
+      headers: authHeaders(),
+    })
+    .then((res) => res.data);
