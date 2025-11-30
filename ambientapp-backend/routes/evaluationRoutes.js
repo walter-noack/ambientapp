@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Evaluation = require("../models/Evaluation");
-const ResiduosRep = require("../models/ResiduosRep");
+const ResiduosRep = require("../models/residuosRep.model");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
 // ---------------------------------------------------
