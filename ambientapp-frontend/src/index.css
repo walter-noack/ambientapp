@@ -67,4 +67,13 @@ button:focus-visible {
   }
 }
 
+.pdf-page {
+  page-break-after: always;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+}
 
