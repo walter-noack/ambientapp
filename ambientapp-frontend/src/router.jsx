@@ -10,6 +10,7 @@ import EditarEvaluacion from "./pages/EditarEvaluacion";
 import Login from "./pages/Login";
 import AcercaDe from "./pages/AcercaDe";
 import GenerarPDF from "./pages/GenerarPDF";
+import PreviewPDF from "./pages/PreviewPDF";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import ToastManager from "./components/ToastManager";
@@ -91,6 +92,9 @@ export default function RouterApp() {
             }
           />
 
+          <Route path="/preview-pdf/:id" element={<PreviewPDF />} />
+
+          
         </Routes>
       </div>
     </BrowserRouter>
