@@ -9,7 +9,7 @@ import DetalleEvaluacion from "./pages/DetalleEvaluacion";
 import EditarEvaluacion from "./pages/EditarEvaluacion";
 import Login from "./pages/Login";
 import AcercaDe from "./pages/AcercaDe";
-import GenerarPDF from "./pages/GenerarPDF";
+
 import PreviewPDF from "./pages/PreviewPDF";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -74,14 +74,7 @@ export default function RouterApp() {
             }
           />
 
-          <Route
-            path="/pdf/:id"
-            element={
-              <ProtectedRoute>
-                <GenerarPDF />
-              </ProtectedRoute>
-            }
-          />
+
 
           <Route
             path="/acerca"

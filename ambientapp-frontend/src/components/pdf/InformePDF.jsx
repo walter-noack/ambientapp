@@ -1,6 +1,45 @@
 // src/components/pdf/InformePDF.jsx
 import React from "react";
 import { generarRecomendacionesPriorizadas } from "../../utils/recomendaciones";
+import { useEffect, useState } from "react";
+import { usePdfPageNumbers } from "../../hooks/usePdfPageNumbers";
+import PdfFooter from "./PdfFooter";
+
+function LogoAmbientAPP() {
+    const [png, setPng] = useState(null);
+
+    useEffect(() => {
+        fetch("/logo-ambientapp.svg")
+            .then(res => res.text())
+            .then(svg => {
+                const svg64 = btoa(unescape(encodeURIComponent(svg)));
+                const imageSrc = `data:image/svg+xml;base64,${svg64}`;
+
+                const img = new Image();
+                img.src = imageSrc;
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    setPng(canvas.toDataURL("image/png"));
+                };
+            });
+    }, []);
+
+    if (!png) return <div style={{ height: 110 }} />;
+
+    return (
+        <img
+            src={png}
+            alt="AmbientAPP"
+            style={{ height: "110px", objectFit: "contain" }}
+        />
+    );
+}
+
+export { LogoAmbientAPP };
 
 /**
  * INFORME PDF — versión final
@@ -27,6 +66,8 @@ export default function InformePDF({
     const periodo = ev.period || "Período no definido";
     const fecha = new Date().toLocaleDateString("es-CL");
 
+    usePdfPageNumbers({ empresa, fecha });
+
     const totalResiduos = ev?.wasteData?.residuosTotales || 0;
 
     // REP
@@ -36,38 +77,213 @@ export default function InformePDF({
             ? (repUltimo.cantidadValorizada / repUltimo.cantidadGenerada) * 100
             : 0;
 
+    function BadgeSVG({ text, bg, border, color }) {
+        return (
+            <svg
+                width="68"
+                height="22"
+                style={{ display: "inline-block", verticalAlign: "middle" }}
+            >
+                <rect
+                    x="0.5"
+                    y="0.5"
+                    width="67"
+                    height="21"
+                    rx="6"
+                    fill={bg}
+                    stroke={border}
+                />
+                <text
+                    x="50%"
+                    y="50%"
+                    fontSize="11"
+                    fontFamily="Inter, sans-serif"
+                    fill={color}
+                    dominantBaseline="middle"
+                    textAnchor="middle"
+                >
+                    {text}
+                </text>
+            </svg>
+        );
+    }
+
+    function NumeroBadge({ n }) {
+        return (
+            <svg width="36" height="36" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="18" fill="#10b981" />
+                <text
+                    x="18"
+                    y="21"
+                    textAnchor="middle"
+                    fontSize="14"
+                    fontWeight="700"
+                    fill="white"
+                    fontFamily="Inter, sans-serif"
+                >
+                    {n}
+                </text>
+            </svg>
+        );
+    }
+
+    function PrioridadBadgeSVG({ prioridad }) {
+        const map = {
+            1: { txt: "Crítica", color: "#dc2626", bg: "#fee2e2", dot: "#b91c1c" }, // rojo
+            2: { txt: "Alta", color: "#c2410c", bg: "#ffedd5", dot: "#ea580c" },   // naranja
+            3: { txt: "Media", color: "#92400e", bg: "#fef3c7", dot: "#ca8a04" }, // amarillo
+            4: { txt: "Baja", color: "#065f46", bg: "#d1fae5", dot: "#10b981" },  // verde
+        };
+
+        const p = map[prioridad] ?? map[3];
+
+        return (
+            <svg
+                width="82"
+                height="26"
+                viewBox="0 0 82 26"
+                style={{ display: "block" }}
+            >
+                {/* Fondo redondeado */}
+                <rect
+                    x="0"
+                    y="0"
+                    width="82"
+                    height="26"
+                    rx="8"
+                    fill={p.bg}
+                    stroke={p.color + "33"}
+                />
+
+                {/* Circulito */}
+                <circle cx="14" cy="13" r="5" fill={p.dot} />
+
+                {/* Texto */}
+                <text
+                    x="32"
+                    y="16"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill={p.color}
+                    fontFamily="Inter, sans-serif"
+                >
+                    {p.txt}
+                </text>
+            </svg>
+        );
+    }
+
+
+    function ProximosPasosSVG() {
+        return (
+            <svg
+                width="700"
+                height="165"
+                viewBox="0 0 700 165"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ display: "block", marginTop: "24px" }}
+            >
+                {/* Fondo */}
+                <rect
+                    x="0"
+                    y="0"
+                    width="700"
+                    height="165"
+                    rx="14"
+                    fill="#f8fafc"
+                    stroke="#cbd5e1"
+                />
+
+                {/* Icono + título */}
+                <text
+                    x="28"
+                    y="38"
+                    fontFamily="Inter, sans-serif"
+                    fontSize="18"
+                    fontWeight="600"
+                    fill="#0f172a"
+                >
+                    📌 Próximos pasos sugeridos
+                </text>
+
+                {/* Lista */}
+                <text
+                    x="48"
+                    y="72"
+                    fontFamily="Inter, sans-serif"
+                    fontSize="14"
+                    fill="#374151"
+                >
+                    1. Revisar y validar las recomendaciones con el equipo directivo
+                </text>
+
+                <text
+                    x="48"
+                    y="98"
+                    fontFamily="Inter, sans-serif"
+                    fontSize="14"
+                    fill="#374151"
+                >
+                    2. Asignar responsables y presupuesto para cada acción prioritaria
+                </text>
+
+                <text
+                    x="48"
+                    y="124"
+                    fontFamily="Inter, sans-serif"
+                    fontSize="14"
+                    fill="#374151"
+                >
+                    3. Establecer indicadores de seguimiento (KPIs) para medir el progreso
+                </text>
+
+                <text
+                    x="48"
+                    y="150"
+                    fontFamily="Inter, sans-serif"
+                    fontSize="14"
+                    fill="#374151"
+                >
+                    4. Realizar nueva evaluación en 6 meses para medir mejoras
+                </text>
+            </svg>
+        );
+    }
+
     function RecomendacionCard({ rec, numero }) {
         const impactoColor = {
             "Alto": "bg-red-100 text-red-800 border-red-300",
             "Medio": "bg-yellow-100 text-yellow-800 border-yellow-300",
-            "Bajo": "bg-green-100 text-green-800 border-green-300"
+            "Bajo": "bg-green-100 text-green-800 border-green-300",
         };
 
         const facilidadColor = {
-            "Alta": "bg-emerald-100 text-emerald-800",
-            "Media": "bg-blue-100 text-blue-800",
-            "Baja": "bg-slate-100 text-slate-800"
+            "Alta": "bg-emerald-100 text-emerald-800 border-emerald-300",
+            "Media": "bg-blue-100 text-blue-800 border-blue-300",
+            "Baja": "bg-slate-100 text-slate-800 border-slate-300",
         };
 
         const prioridadBadge = {
             1: "🔴 Crítica",
             2: "🟠 Alta",
             3: "🟡 Media",
-            4: "🟢 Baja"
+            4: "🟢 Baja",
         };
 
         return (
-            <div className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <div className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm avoid-break">
                 <div className="flex items-start gap-3">
+
                     {/* Número */}
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">
-                        {numero}
+                    <div className="flex-shrink-0">
+                        <NumeroBadge n={numero} />
                     </div>
 
                     {/* Contenido */}
                     <div className="flex-1">
+
                         {/* Header */}
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center justify-between mb-2">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-lg">{rec.icono}</span>
@@ -75,9 +291,11 @@ export default function InformePDF({
                                 </div>
                                 <p className="text-xs text-slate-500 font-medium">{rec.dimension}</p>
                             </div>
-                            <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-200 text-slate-700">
-                                {prioridadBadge[rec.prioridad]}
-                            </span>
+
+                            {/* PRIORIDAD */}
+                            <div className="flex-shrink-0">
+                                <PrioridadBadgeSVG prioridad={rec.prioridad} />
+                            </div>
                         </div>
 
                         {/* Descripción */}
@@ -85,33 +303,39 @@ export default function InformePDF({
                             {rec.descripcion}
                         </p>
 
-                        {/* Badges de impacto y facilidad */}
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs text-slate-600 font-medium">Impacto:</span>
-                                <span className={`text-xs px-2 py-0.5 rounded border ${impactoColor[rec.impacto]}`}>
-                                    {rec.impacto}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs text-slate-600 font-medium">Facilidad:</span>
-                                <span className={`text-xs px-2 py-0.5 rounded ${facilidadColor[rec.facilidad]}`}>
-                                    {rec.facilidad}
-                                </span>
-                            </div>
+                        {/* BADGES: Impacto / Facilidad */}
+                        <div className="flex items-center gap-6 leading-none">
+
+                            {/* IMPACTO */}
+                            <BadgeSVG
+                                text={rec.impacto}
+                                bg={rec.impacto === "Alto" ? "#fee2e2" : rec.impacto === "Medio" ? "#fef9c3" : "#dcfce7"}
+                                border={rec.impacto === "Alto" ? "#fecaca" : rec.impacto === "Medio" ? "#fde047" : "#bbf7d0"}
+                                color={rec.impacto === "Alto" ? "#b91c1c" : rec.impacto === "Medio" ? "#92400e" : "#166534"}
+                            />
+
+                            {/* FACILIDAD */}
+                            <BadgeSVG
+                                text={rec.facilidad}
+                                bg={rec.facilidad === "Alta" ? "#dcfce7" : rec.facilidad === "Media" ? "#dbeafe" : "#f1f5f9"}
+                                border={rec.facilidad === "Alta" ? "#86efac" : rec.facilidad === "Media" ? "#93c5fd" : "#cbd5e1"}
+                                color={rec.facilidad === "Alta" ? "#065f46" : rec.facilidad === "Media" ? "#1e40af" : "#475569"}
+                            />
                         </div>
 
-                        {/* Footer con ahorro y plazo */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                        {/* FOOTER */}
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
                             <div className="flex items-center gap-1 text-xs text-emerald-700">
                                 <span className="font-semibold">💰</span>
                                 <span>{rec.ahorroPotencial}</span>
                             </div>
+
                             <div className="flex items-center gap-1 text-xs text-slate-600">
                                 <span className="font-semibold">⏱️</span>
                                 <span>{rec.plazo}</span>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -137,6 +361,7 @@ export default function InformePDF({
                 style={{
                     minHeight: "1120px",
                     padding: "64px 72px",
+                    pageBreakAfter: "always",
                     backgroundImage: `
                         radial-gradient(circle at 20% 10%, rgba(16,185,129,0.09), transparent 55%),
                         radial-gradient(circle at 80% 90%, rgba(37,99,235,0.08), transparent 55%),
@@ -153,16 +378,13 @@ export default function InformePDF({
             >
                 {/* HEADER */}
                 <header className="flex items-start justify-between mb-12">
-                    <img
-                        src="/logo-ambientapp.svg"
-                        alt="AmbientAPP"
-                        style={{ height: "110px", objectFit: "contain" }}
-                    />
+                    <LogoAmbientAPP />
                 </header>
 
                 {/* TÍTULO */}
                 <div className="mt-12" style={{ maxWidth: "520px" }}>
-                    <h1 className="text-[40px] font-semibold leading-tight mb-3">
+                    <h1 className="text-[40px] font-semibold leading-tight mb-3" style={{ letterSpacing: "0.4px" }}>
+
                         Diagnóstico Ambiental
                     </h1>
                     <p className="text-base text-slate-600">
@@ -180,9 +402,6 @@ export default function InformePDF({
                     <InfoBox label="Generado por" value="AmbientAPP" />
                 </div>
 
-                <footer className="mt-10 text-[10px] text-slate-500">
-                    Informe generado automáticamente por AmbientAPP
-                </footer>
             </section>
 
             {/* ========================================================= */}
@@ -190,13 +409,14 @@ export default function InformePDF({
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Resumen ejecutivo"
                     desc="Visión general del desempeño ambiental de la organización."
                     page={2}
                 />
+
 
                 {/* KPIs */}
                 <div className="grid grid-cols-2 gap-6 mb-10">
@@ -240,6 +460,7 @@ export default function InformePDF({
                         {textoGlobal}
                     </p>
                 </div>
+                <PdfFooter page={2} empresa={empresa} fecha={fecha} />
             </section>
 
             {/* ========================================================= */}
@@ -247,13 +468,14 @@ export default function InformePDF({
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Perfil ambiental de la organización"
                     desc="Desempeño global en carbono, agua y residuos basado en los puntajes ambientales."
                     page={3}
                 />
+
 
                 <div className="grid grid-cols-[1.1fr_1.2fr] gap-10">
 
@@ -282,6 +504,7 @@ export default function InformePDF({
                         <ScoreGrid scores={ev.scores} />
                     </div>
                 </div>
+                <PdfFooter page={3} empresa={empresa} fecha={fecha} />
             </section>
 
             {/* ========================================================= */}
@@ -289,7 +512,7 @@ export default function InformePDF({
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Huella de carbono – Alcances 1 y 2"
@@ -311,19 +534,21 @@ export default function InformePDF({
                     <InterpretacionCarbono emisiones={emisiones} texto={textoCarbono} />
 
                 </div>
+                <PdfFooter page={4} empresa={empresa} fecha={fecha} />
             </section>
             {/* ========================================================= */}
             {/*           PÁGINA 5 - GESTIÓN HÍDRICA                      */}
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Gestión hídrica"
                     desc="Análisis del consumo de agua y desempeño en gestión del recurso hídrico."
                     page={5}
                 />
+
 
                 <div className="grid grid-cols-2 gap-10">
 
@@ -379,14 +604,15 @@ export default function InformePDF({
                         </div>
                     </div>
                 </div>
+                <PdfFooter page={5} empresa={empresa} fecha={fecha} />
             </section>
 
             {/* ========================================================= */}
-            {/*           PÁGINA 6 - GESTIÓN DE RESIDUOS + LEY REP       */}
+            {/*               PÁGINA 6 - GESTIÓN DE RESIDUOS              */}
             {/* ========================================================= */}
             <section
-                className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                className="pdf-page avoid-break"
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Gestión de residuos y Ley REP"
@@ -394,7 +620,8 @@ export default function InformePDF({
                     page={6}
                 />
 
-                <div className="grid grid-cols-2 gap-10 mb-8">
+
+                <div className="grid grid-cols-2 gap-10 mb-8 shadow-sm no-split">
 
                     {/* KPIs DE RESIDUOS */}
                     <div className="space-y-6">
@@ -421,7 +648,7 @@ export default function InformePDF({
                     </div>
 
                     {/* INTERPRETACIÓN */}
-                    <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm">
+                    <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-sm shadow-sm no-split">
                         <h3 className="text-sm font-semibold mb-2">Interpretación</h3>
                         <p className="text-sm text-slate-700 leading-relaxed mb-4">
                             {interpretarResiduos(ev?.wasteData, ev?.scores?.wasteScore)}
@@ -441,99 +668,158 @@ export default function InformePDF({
                         </div>
                     </div>
                 </div>
-
-                {/* SECCIÓN LEY REP */}
-                <div className="border-t-2 border-slate-200 pt-8">
-                    <h3 className="text-lg font-semibold mb-4">Ley de Responsabilidad Extendida del Productor (REP)</h3>
-
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/60 shadow-sm">
-                            <h4 className="text-sm font-semibold mb-2">Estado de cumplimiento</h4>
-                            <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                                {textoRep}
-                            </p>
-
-                            {residuosRep && residuosRep.length > 0 && (
-                                <div className="mt-4">
-                                    <p className="text-xs font-semibold text-slate-700 mb-2">
-                                        Últimos registros REP:
-                                    </p>
-                                    <div className="space-y-2">
-                                        {residuosRep.slice(0, 3).map((rep, idx) => (
-                                            <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded border border-slate-100">
-                                                <span className="font-medium">{rep.producto || 'N/A'}</span>
-                                                <span className="text-slate-600">{rep.anio}</span>
-                                                <span className="font-semibold text-emerald-700">
-                                                    {rep.porcentajeValorizacion?.toFixed(1) || 0}%
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="border border-amber-200 rounded-xl p-5 bg-amber-50/60 shadow-sm">
-                            <h4 className="text-sm font-semibold text-amber-900 mb-2">
-                                ⚠️ Productos prioritarios REP
-                            </h4>
-                            <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside">
-                                <li>Envases y embalajes</li>
-                                <li>Aparatos eléctricos y electrónicos</li>
-                                <li>Pilas y baterías</li>
-                                <li>Neumáticos</li>
-                                <li>Aceites lubricantes</li>
-                                <li>Diarios y periódicos</li>
-                            </ul>
-                            <p className="text-xs text-amber-700 mt-3 leading-relaxed">
-                                Las empresas que comercialicen estos productos deben cumplir
-                                metas anuales de recolección y valorización establecidas por
-                                el Ministerio del Medio Ambiente.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <PdfFooter page={6} empresa={empresa} fecha={fecha} />
             </section>
+
             {/* ========================================================= */}
-            {/*      PÁGINA 7 - PLAN DE ACCIÓN Y RECOMENDACIONES         */}
+            {/*                PAGINA 7 - LEY REP                         */}
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px" }}
+                style={{ minHeight: "1120px", padding: "56px 72px", pageBreakBefore: "always", position: "relative" }}
+            >
+                <HeaderSection
+                    title="Responsabilidad Extendida del Productor (REP)"
+                    desc="Revisión del cumplimiento, valorización y obligaciones normativas."
+                    page={7}
+                />
+
+
+                <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/60 shadow-sm mb-8">
+                    <h3 className="text-sm font-semibold mb-2">Estado de cumplimiento</h3>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                        {textoRep}
+                    </p>
+
+                    {residuosRep && residuosRep.length > 0 && (
+                        <div className="space-y-2">
+                            {residuosRep.slice(0, 4).map((rep, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex justify-between text-xs bg-white p-2 rounded border border-slate-100"
+                                    style={{ pageBreakInside: "avoid" }}
+                                >
+                                    <span className="font-medium">{rep.producto || 'N/A'}</span>
+                                    <span className="text-slate-600">{rep.anio}</span>
+                                    <span className="font-semibold text-emerald-700">
+                                        {rep.porcentajeValorizacion?.toFixed(1) || 0}%
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="border border-amber-200 rounded-xl p-5 bg-amber-50/60 shadow-sm">
+                    <h4 className="text-sm font-semibold text-amber-900 mb-2">
+                        ⚠️ Productos prioritarios REP
+                    </h4>
+                    <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside">
+                        <li>Envases y embalajes</li>
+                        <li>Aparatos eléctricos y electrónicos</li>
+                        <li>Pilas y baterías</li>
+                        <li>Neumáticos</li>
+                        <li>Aceites lubricantes</li>
+                        <li>Diarios y periódicos</li>
+                    </ul>
+                </div>
+                <PdfFooter page={7} empresa={empresa} fecha={fecha} />
+            </section>
+
+            {/* ========================================================= */}
+            {/*      PÁGINA 8 - PLAN DE ACCIÓN Y RECOMENDACIONES          */}
+            {/* ========================================================= */}
+            <section
+                className="pdf-page"
+                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
             >
                 <HeaderSection
                     title="Plan de acción recomendado"
                     desc="Recomendaciones priorizadas para mejorar el desempeño ambiental de la organización."
-                    page={7}
+                    page={8}
                 />
 
-                {/* INTRODUCCIÓN */}
+
                 <div className="mb-6 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-500 rounded-r-lg">
                     <p className="text-sm text-slate-700 leading-relaxed">
                         Basado en los resultados de su evaluación ambiental, hemos identificado las siguientes
                         oportunidades de mejora <strong>priorizadas por impacto y facilidad de implementación</strong>.
-                        Cada recomendación incluye estimación de ahorro potencial y plazo sugerido.
                     </p>
                 </div>
 
-                {/* RECOMENDACIONES PRIORIZADAS */}
-                <div className="space-y-4">
-                    {generarRecomendacionesPriorizadas(ev).slice(0, 6).map((rec, idx) => (
-                        <RecomendacionCard key={idx} rec={rec} numero={idx + 1} />
-                    ))}
-                </div>
+                {/** DIVIDE AUTOMÁTICAMENTE LAS RECOMENDACIONES */}
+                {(() => {
+                    const recomendacionesFull = generarRecomendacionesPriorizadas(ev);
+                    const PAGINA_MAX = 4;
 
-                {/* FOOTER CON PRÓXIMOS PASOS */}
-                <div className="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-300">
-                    <h3 className="text-sm font-bold text-slate-800 mb-2">📌 Próximos pasos sugeridos</h3>
-                    <ol className="text-xs text-slate-700 space-y-1 list-decimal list-inside">
-                        <li>Revisar y validar las recomendaciones con el equipo directivo</li>
-                        <li>Asignar responsables y presupuesto para cada acción prioritaria</li>
-                        <li>Establecer indicadores de seguimiento (KPIs) para medir el progreso</li>
-                        <li>Realizar nueva evaluación en 6 meses para medir mejoras</li>
-                    </ol>
-                </div>
+                    const primeras = recomendacionesFull.slice(0, PAGINA_MAX);
+                    const restantes = recomendacionesFull.slice(PAGINA_MAX);
+
+                    return (
+                        <>
+                            <div className="space-y-4">
+                                {primeras.map((rec, idx) => (
+                                    <RecomendacionCard
+                                        key={idx}
+                                        rec={rec}
+                                        numero={idx + 1}
+                                    />
+                                ))}
+                            </div>
+
+                            {restantes.length > 0 && (
+                                <p className="mt-6 text-xs text-slate-500 italic">
+                                    *Las recomendaciones continúan en la siguiente página*
+                                </p>
+                            )}
+                        </>
+                    );
+                })()}
+                <PdfFooter page={8} empresa={empresa} fecha={fecha} />
             </section>
+            {(() => {
+                const recomendacionesFull = generarRecomendacionesPriorizadas(ev);
+                const PAGINA_MAX = 4;
+
+                if (recomendacionesFull.length <= PAGINA_MAX) return null;
+
+                const restantes = recomendacionesFull.slice(PAGINA_MAX);
+
+                return (
+                    <section
+                        className="pdf-page"
+                        style={{
+                            minHeight: "1120px",
+                            padding: "56px 72px",
+                            pageBreakBefore: "always"
+                        }}
+                    >
+                        <HeaderSection
+                            title="Plan de acción recomendado (continuación)"
+                            desc="Recomendaciones adicionales y próximos pasos sugeridos."
+                            page={9}
+                        />
+
+                        <div className="space-y-4">
+                            {restantes.map((rec, idx) => (
+                                <RecomendacionCard
+                                    key={idx}
+                                    rec={rec}
+                                    numero={PAGINA_MAX + idx + 1}
+                                />
+                            ))}
+                        </div>
+
+                        <div className="mt-10 avoid-break">
+                            <ProximosPasosSVG />
+                        </div>
+                        <PdfFooter page={9} empresa={empresa} fecha={fecha} />
+                    </section>
+                );
+            })()}
+
+
+
         </div>
     );
 }
@@ -556,7 +842,7 @@ function HeaderSection({ title, desc, page }) {
     return (
         <>
             <header className="mb-10">
-                <h2 className="text-2xl font-semibold mb-1">{title}</h2>
+                <h2 className="text-2xl font-semibold mb-1" style={{ letterSpacing: "0.3px" }}>{title}</h2>
                 <p className="text-xs text-slate-500">{desc}</p>
                 <div className="h-[1px] bg-slate-200 w-full mt-4" />
             </header>
