@@ -1,77 +1,40 @@
-// src/components/pdf/PdfFooter.jsx
-import React, { useEffect, useState } from "react";
+export async function addPdfFooter(pdf, { empresa, fecha, totalPages }) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const marginX = 18;
+  const posY = 284;
 
-/**
- * Footer para páginas PDF
- * Convierte el SVG /public/logo-ambientapp.svg a PNG antes de imprimir
- */
+  // === LOGO NÍTIDO Y PROPORCIONAL ===
+  const maxLogoWidth = 22; // mm
+  let logoW = maxLogoWidth;
+  let logoH;
 
-export default function PdfFooter({ page, empresa, fecha }) {
-    const [logoPng, setLogoPng] = useState(null);
+  const logo = new Image();
+  logo.src = "/logo-ambientapp-hd.png";
 
-    useEffect(() => {
-        fetch("/logo-ambientapp.svg")
-            .then(res => res.text())
-            .then(svg => {
-                const svg64 = btoa(unescape(encodeURIComponent(svg)));
-                const src = `data:image/svg+xml;base64,${svg64}`;
+  await new Promise((resolve) => {
+    logo.onload = () => {
+      const ratio = logo.height / logo.width;
+      logoH = logoW * ratio;
+      resolve();
+    };
+  });
 
-                const img = new Image();
-                img.src = src;
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0);
-                    setLogoPng(canvas.toDataURL("image/png"));
-                };
-            });
-    }, []);
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
 
-    return (
-        <footer
-            style={{
-                position: "absolute",
-                bottom: "24px",
-                left: "56px",
-                right: "56px",
-                height: "24px",
-                fontSize: "9px",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderTop: "1px solid #e2e8f0",
-                paddingTop: "6px",
-                fontFamily: "'Inter', sans-serif",
-                backgroundColor: "white",
-            }}
-        >
-            {/* Empresa + logo */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                {logoPng && (
-                    <img
-                        src={logoPng}
-                        alt="AmbientAPP"
-                        style={{
-                            height: "35px",
-                            objectFit: "contain",
-                            opacity: 0.9,
-                        }}
-                    />
-                )}
-                <span style={{ fontWeight: 500 }}>Informe creado para 
-                    {empresa}</span>
-            </div>
+    pdf.setDrawColor(229, 231, 235);
+    pdf.setLineWidth(0.25);
+    pdf.line(marginX, posY - 8, pageWidth - marginX, posY - 8);
 
-            {/* Fecha */}
-            <span>{fecha}</span>
+    // ⬇️ LOGO PERFECTO
+    pdf.addImage(logo, "PNG", marginX, posY - logoH + 5.6, logoW, logoH);
 
-            {/* Página */}
-            <span className="pdf-footer-number" style={{ fontFeatureSettings: '"tnum"' }}>
-                Página {page}
-            </span>
-        </footer>
-    );
+    pdf.setFont("Helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(71, 85, 105);
+
+    pdf.text(`Informe creado para ${empresa}`, marginX + logoW + 4, posY);
+    pdf.text(fecha, pageWidth / 2, posY, { align: "center" });
+    pdf.text(`Página ${i}`, pageWidth - marginX, posY, { align: "right" });
+  }
 }

@@ -1,14 +1,17 @@
 // src/utils/exportInformeDesdeDOM.js
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { addPdfFooter } from "../components/pdf/PdfFooter";
+
 
 /**
- * Exporta cada .pdf-page como página independiente en un PDF A4
- * Mantiene proporciones exactas del diseño: ancho 800px → A4 (210mm)
+ * Exporta cada .pdf-page como páginas reales en A4
+ * Devuelve un Blob PDF listo para descargar o comprimir
  */
 export default async function exportInformeDesdeDOM({
-  fileName = "ambientapp_informe.pdf",
   rootElementId = "pdf-root",
+  empresa = "",
+  fecha = "",
 }) {
   const root = document.getElementById(rootElementId);
   if (!root) throw new Error(`No se encontró el contenedor con id="${rootElementId}"`);
@@ -17,56 +20,59 @@ export default async function exportInformeDesdeDOM({
   root.style.backgroundColor = "#ffffff";
 
   try {
-    // PDF en A4, portrait
     const pdf = new jsPDF({
       unit: "mm",
       format: "a4",
       orientation: "portrait",
+      compress: true,
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+    // 📌 Registrar fuentes ANTES de usarlas
+    /*registerFonts(pdf);*/
+    pdf.setFont("Helvetica", "normal");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
     const pages = root.querySelectorAll(".pdf-page");
 
-    // Si no hay secciones, exporta todo el root
     if (!pages.length) {
-      await exportSingleCanvas(pdf, root, pdfWidth);
-      pdf.save(fileName);
-      return;
+      await addCanvasToPDF(pdf, root, pdfWidth);
+    } else {
+      let first = true;
+
+      for (const page of pages) {
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          useCORS: true,
+          allowTaint: false,
+          ignoreElements: (el) => el.classList.contains("no-print"),
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        if (!first) pdf.addPage();
+        first = false;
+
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
+      }
     }
 
-    let isFirst = true;
+    // 🆕 Inserta footers en el PDF final (NO en el DOM)
+    const totalPages = pdf.internal.getNumberOfPages();
+    await addPdfFooter(pdf, { empresa, fecha, totalPages });
 
-    for (const page of pages) {
-      const canvas = await html2canvas(page, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        allowTaint: false,
-        imageTimeout: 2000,
-        ignoreElements: (el) => el.classList.contains("no-print"),
-      });
+    return pdf.output("blob");
 
-      const imgData = canvas.toDataURL("image/png");
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width; // Escala proporcional
-
-      if (!isFirst) pdf.addPage();
-      isFirst = false;
-
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    }
-
-    pdf.save(fileName);
-    console.log(`📄 PDF "${fileName}" generado con ${pages.length} páginas`);
   } catch (error) {
-    console.error("❌ Error al exportar PDF:", error);
+    console.error("❌ Error exportando PDF:", error);
     throw error;
   } finally {
     root.style.backgroundColor = originalBg;
   }
 }
 
-async function exportSingleCanvas(pdf, element, pdfWidth) {
+async function addCanvasToPDF(pdf, element, pdfWidth) {
   const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#ffffff" });
   const imgData = canvas.toDataURL("image/png");
   const imgHeight = (canvas.height * pdfWidth) / canvas.width;

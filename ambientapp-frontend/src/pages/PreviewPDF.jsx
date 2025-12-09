@@ -6,6 +6,7 @@ import InformePDF from "../components/pdf/InformePDF";
 import exportInformeDesdeDOM from "../utils/exportInformedesdeDOM";
 import verificarInformePDF from "../utils/verificarInformePDF";
 import "../styles/pdf.css";
+import { compressPDF } from "../utils/compressPDF";
 
 import { getEvaluacionById, getResiduosRep } from "../services/api";
 import { calcularEmisionesCarbono } from "../utils/calculosHuella";
@@ -80,13 +81,33 @@ export default function PreviewPDF() {
 
   const handleExport = async () => {
     try {
-      verificarInformePDF("pdf-root"); // ⬅️ Validación previa
+      verificarInformePDF("pdf-root");
       setExporting(true);
 
-      await exportInformeDesdeDOM({
-        fileName: `ambientapp_informe_${id}.pdf`,
+      // ⬅️ 1) Genera PDF desde el DOM y devuelve un Blob
+      const pdfBlob = await exportInformeDesdeDOM({
         rootElementId: "pdf-root",
+        empresa: evaluacion.companyName,
+        fecha: new Date().toLocaleDateString("es-CL"),
       });
+
+      console.log("📦 PDF original:", pdfBlob.size / 1024 / 1024, "MB");
+
+      // ⬅️ 2) Comprimir PDF (devuelve un Blob)
+      const compressedBlob = await compressPDF(pdfBlob);
+
+      console.log("🔽 PDF comprimido:", compressedBlob.size / 1024 / 1024, "MB");
+
+      // ⬅️ 3) Descargar el PDF comprimido
+      const url = URL.createObjectURL(compressedBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ambientapp_informe_${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
     } catch (error) {
       console.error(error);
       alert(error.message);
@@ -111,10 +132,9 @@ export default function PreviewPDF() {
             onClick={handleExport}
             disabled={exporting || !radarImg || !stackedImg}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-white transition-colors 
-              ${
-                exporting || !radarImg || !stackedImg
-                  ? "bg-slate-400 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-700"
+              ${exporting || !radarImg || !stackedImg
+                ? "bg-slate-400 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700"
               }`}
           >
             {exporting ? "Generando..." : "📄 Exportar PDF"}

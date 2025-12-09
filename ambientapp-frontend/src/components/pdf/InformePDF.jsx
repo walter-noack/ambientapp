@@ -3,7 +3,7 @@ import React from "react";
 import { generarRecomendacionesPriorizadas } from "../../utils/recomendaciones";
 import { useEffect, useState } from "react";
 import { usePdfPageNumbers } from "../../hooks/usePdfPageNumbers";
-import PdfFooter from "./PdfFooter";
+
 
 function LogoAmbientAPP() {
     const [png, setPng] = useState(null);
@@ -129,10 +129,10 @@ export default function InformePDF({
 
     function PrioridadBadgeSVG({ prioridad }) {
         const map = {
-            1: { txt: "Crítica", color: "#dc2626", bg: "#fee2e2", dot: "#b91c1c" }, // rojo
-            2: { txt: "Alta", color: "#c2410c", bg: "#ffedd5", dot: "#ea580c" },   // naranja
-            3: { txt: "Media", color: "#92400e", bg: "#fef3c7", dot: "#ca8a04" }, // amarillo
-            4: { txt: "Baja", color: "#065f46", bg: "#d1fae5", dot: "#10b981" },  // verde
+            1: { txt: "Crítica", color: "#dc2626", bg: "#fee2e2", dot: "#b91c1c" },
+            2: { txt: "Alta", color: "#c2410c", bg: "#ffedd5", dot: "#ea580c" },
+            3: { txt: "Media", color: "#92400e", bg: "#fef3c7", dot: "#ca8a04" },
+            4: { txt: "Baja", color: "#065f46", bg: "#d1fae5", dot: "#10b981" },
         };
 
         const p = map[prioridad] ?? map[3];
@@ -144,7 +144,6 @@ export default function InformePDF({
                 viewBox="0 0 82 26"
                 style={{ display: "block" }}
             >
-                {/* Fondo redondeado */}
                 <rect
                     x="0"
                     y="0"
@@ -154,11 +153,7 @@ export default function InformePDF({
                     fill={p.bg}
                     stroke={p.color + "33"}
                 />
-
-                {/* Circulito */}
                 <circle cx="14" cy="13" r="5" fill={p.dot} />
-
-                {/* Texto */}
                 <text
                     x="32"
                     y="16"
@@ -173,80 +168,56 @@ export default function InformePDF({
         );
     }
 
-
-    function ProximosPasosSVG() {
+    // 🔢 Círculo verde con número centrado (para Próximos Pasos)
+    function PasoNumeroSVG({ n }) {
         return (
             <svg
-                width="700"
-                height="165"
-                viewBox="0 0 700 165"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
-                style={{ display: "block", marginTop: "24px" }}
             >
-                {/* Fondo */}
-                <rect
-                    x="0"
-                    y="0"
-                    width="700"
-                    height="165"
-                    rx="14"
-                    fill="#f8fafc"
-                    stroke="#cbd5e1"
-                />
-
-                {/* Icono + título */}
+                <circle cx="12" cy="12" r="11.5" fill="#10b981" />
                 <text
-                    x="28"
-                    y="38"
-                    fontFamily="Inter, sans-serif"
-                    fontSize="18"
+                    x="12"
+                    y="13.5"
+                    textAnchor="middle"
+                    fontSize="11"
                     fontWeight="600"
-                    fill="#0f172a"
-                >
-                    📌 Próximos pasos sugeridos
-                </text>
-
-                {/* Lista */}
-                <text
-                    x="48"
-                    y="72"
+                    fill="#ffffff"
                     fontFamily="Inter, sans-serif"
-                    fontSize="14"
-                    fill="#374151"
                 >
-                    1. Revisar y validar las recomendaciones con el equipo directivo
-                </text>
-
-                <text
-                    x="48"
-                    y="98"
-                    fontFamily="Inter, sans-serif"
-                    fontSize="14"
-                    fill="#374151"
-                >
-                    2. Asignar responsables y presupuesto para cada acción prioritaria
-                </text>
-
-                <text
-                    x="48"
-                    y="124"
-                    fontFamily="Inter, sans-serif"
-                    fontSize="14"
-                    fill="#374151"
-                >
-                    3. Establecer indicadores de seguimiento (KPIs) para medir el progreso
-                </text>
-
-                <text
-                    x="48"
-                    y="150"
-                    fontFamily="Inter, sans-serif"
-                    fontSize="14"
-                    fill="#374151"
-                >
-                    4. Realizar nueva evaluación en 6 meses para medir mejoras
+                    {n}
                 </text>
             </svg>
+        );
+    }
+
+    // 🧩 Bloque HTML de Próximos Pasos (ya no es un SVG gigante)
+    function ProximosPasosBlock() {
+        const pasos = [
+            "Revisar y validar las recomendaciones con el equipo directivo",
+            "Asignar responsables y presupuesto para cada acción prioritaria",
+            "Establecer indicadores de seguimiento (KPIs) para medir el progreso",
+            "Realizar nueva evaluación en 6 meses para medir mejoras",
+        ];
+
+        return (
+            <div className="pdf-next-steps">
+                <h3 className="pdf-next-steps-title">
+                    <span className="icon">📌</span>
+                    Próximos pasos sugeridos
+                </h3>
+
+                <ul className="pdf-next-steps-list">
+                    {pasos.map((texto, idx) => (
+                        <li key={idx} className="pdf-next-step-item">
+                            <PasoNumeroSVG n={idx + 1} />
+                            <span>{texto}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
         );
     }
 
@@ -269,6 +240,30 @@ export default function InformePDF({
             3: "🟡 Media",
             4: "🟢 Baja",
         };
+
+        function PasoNumeroSVG({ n }) {
+            return (
+                <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <circle cx="12" cy="12" r="11.5" fill="#10b981" />
+                    <text
+                        x="12"
+                        y="13.5"
+                        textAnchor="middle"
+                        fontSize="11"
+                        fontWeight="600"
+                        fill="#ffffff"
+                        fontFamily="Inter, sans-serif"
+                    >
+                        {n}
+                    </text>
+                </svg>
+            );
+        }
 
         return (
             <div className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm avoid-break">
@@ -460,7 +455,7 @@ export default function InformePDF({
                         {textoGlobal}
                     </p>
                 </div>
-                <PdfFooter page={2} empresa={empresa} fecha={fecha} />
+
             </section>
 
             {/* ========================================================= */}
@@ -504,7 +499,7 @@ export default function InformePDF({
                         <ScoreGrid scores={ev.scores} />
                     </div>
                 </div>
-                <PdfFooter page={3} empresa={empresa} fecha={fecha} />
+
             </section>
 
             {/* ========================================================= */}
@@ -534,7 +529,7 @@ export default function InformePDF({
                     <InterpretacionCarbono emisiones={emisiones} texto={textoCarbono} />
 
                 </div>
-                <PdfFooter page={4} empresa={empresa} fecha={fecha} />
+
             </section>
             {/* ========================================================= */}
             {/*           PÁGINA 5 - GESTIÓN HÍDRICA                      */}
@@ -604,7 +599,7 @@ export default function InformePDF({
                         </div>
                     </div>
                 </div>
-                <PdfFooter page={5} empresa={empresa} fecha={fecha} />
+
             </section>
 
             {/* ========================================================= */}
@@ -668,7 +663,7 @@ export default function InformePDF({
                         </div>
                     </div>
                 </div>
-                <PdfFooter page={6} empresa={empresa} fecha={fecha} />
+
             </section>
 
             {/* ========================================================= */}
@@ -723,7 +718,7 @@ export default function InformePDF({
                         <li>Diarios y periódicos</li>
                     </ul>
                 </div>
-                <PdfFooter page={7} empresa={empresa} fecha={fecha} />
+
             </section>
 
             {/* ========================================================= */}
@@ -731,14 +726,19 @@ export default function InformePDF({
             {/* ========================================================= */}
             <section
                 className="pdf-page"
-                style={{ minHeight: "1120px", padding: "56px 72px", position: "relative" }}
+                style={{
+                    height: "1280px",          // ALTURA FIJA REAL
+                    padding: "56px 72px",
+                    paddingBottom: "160px",    // ESPACIO RESERVADO PARA FOOTER
+                    position: "relative",
+                    overflow: "hidden"         // EVITA EMPUJES
+                }}
             >
                 <HeaderSection
                     title="Plan de acción recomendado"
                     desc="Recomendaciones priorizadas para mejorar el desempeño ambiental de la organización."
                     page={8}
                 />
-
 
                 <div className="mb-6 p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-500 rounded-r-lg">
                     <p className="text-sm text-slate-700 leading-relaxed">
@@ -747,7 +747,6 @@ export default function InformePDF({
                     </p>
                 </div>
 
-                {/** DIVIDE AUTOMÁTICAMENTE LAS RECOMENDACIONES */}
                 {(() => {
                     const recomendacionesFull = generarRecomendacionesPriorizadas(ev);
                     const PAGINA_MAX = 4;
@@ -767,16 +766,20 @@ export default function InformePDF({
                                 ))}
                             </div>
 
-                            {restantes.length > 0 && (
-                                <p className="mt-6 text-xs text-slate-500 italic">
-                                    *Las recomendaciones continúan en la siguiente página*
-                                </p>
-                            )}
+
+
                         </>
                     );
                 })()}
-                <PdfFooter page={8} empresa={empresa} fecha={fecha} />
+
+                <div style={{ height: "48px" }} />   {/* 👈 BUFFER REAL NECESARIO */}
+
             </section>
+
+
+            {/* ========================================================= */}
+            {/*    PÁGINA 9 - CONTINUACIÓN + PRÓXIMOS PASOS                */}
+            {/* ========================================================= */}
             {(() => {
                 const recomendacionesFull = generarRecomendacionesPriorizadas(ev);
                 const PAGINA_MAX = 4;
@@ -789,8 +792,11 @@ export default function InformePDF({
                     <section
                         className="pdf-page"
                         style={{
-                            minHeight: "1120px",
+                            height: "1280px",          // ALTURA FIJA REAL
                             padding: "56px 72px",
+                            paddingBottom: "160px",
+                            position: "relative",
+                            overflow: "hidden",
                             pageBreakBefore: "always"
                         }}
                     >
@@ -800,7 +806,7 @@ export default function InformePDF({
                             page={9}
                         />
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {restantes.map((rec, idx) => (
                                 <RecomendacionCard
                                     key={idx}
@@ -810,15 +816,22 @@ export default function InformePDF({
                             ))}
                         </div>
 
-                        <div className="mt-10 avoid-break">
-                            <ProximosPasosSVG />
+                        <div
+                            className="avoid-break"
+                            style={{
+                                marginTop: "28px",
+                                pageBreakInside: "avoid",
+                                breakInside: "avoid"
+                            }}
+                        >
+                            <ProximosPasosBlock />
                         </div>
-                        <PdfFooter page={9} empresa={empresa} fecha={fecha} />
+
+                        <div style={{ height: "48px" }} />
+
                     </section>
                 );
             })()}
-
-
 
         </div>
     );
