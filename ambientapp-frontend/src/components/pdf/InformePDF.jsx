@@ -266,7 +266,7 @@ export default function InformePDF({
         }
 
         return (
-            <div className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm avoid-break">
+            <div className="border border-slate-300 rounded-lg p-4 py-2.5 bg-white shadow-sm avoid-break">
                 <div className="flex items-start gap-3">
 
                     {/* Número */}
@@ -294,7 +294,7 @@ export default function InformePDF({
                         </div>
 
                         {/* Descripción */}
-                        <p className="text-xs text-slate-700 mb-3 leading-relaxed">
+                        <p className="text-xs text-slate-700 mb-2 leading-relaxed">
                             {rec.descripcion}
                         </p>
 
@@ -319,7 +319,7 @@ export default function InformePDF({
                         </div>
 
                         {/* FOOTER */}
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-3">
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-200 mt-">
                             <div className="flex items-center gap-1 text-xs text-emerald-700">
                                 <span className="font-semibold">💰</span>
                                 <span>{rec.ahorroPotencial}</span>
@@ -756,7 +756,7 @@ export default function InformePDF({
 
                     return (
                         <>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {primeras.map((rec, idx) => (
                                     <RecomendacionCard
                                         key={idx}
